@@ -24,8 +24,8 @@
 
 // Settings
 #define PACKET_RX_TIMEOUT		1000
-#define PACKET_HANDLERS			2
-#define PACKET_MAX_PL_LEN		1024
+#define PACKET_HANDLERS			3
+#define PACKET_MAX_PL_LEN		2048
 
 // Functions
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),

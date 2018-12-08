@@ -1,26 +1,29 @@
 /*
-	Copyright 2016 - 2017 Benjamin Vedder	benjamin@vedder.se
+ Copyright 2016 - 2017 Benjamin Vedder	benjamin@vedder.se
 
-	This file is part of the VESC firmware.
+ This file is part of the VESC firmware.
 
-	The VESC firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+ The VESC firmware is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-    The VESC firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+ The VESC firmware is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "conf_general.h"
 #include "ch.h"
 #include "eeprom.h"
+#include "mcpwm_foc.h"
+#include "mcpwm_foc2.h"
 #include "mcpwm.h"
+#include "mcpwm2.h"
 #include "mc_interface.h"
 #include "hw.h"
 #include "utils.h"
@@ -46,31 +49,33 @@
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
-#define EEPROM_BASE_APPCONF		2000
+#define EEPROM_BASE_APPCONF		3000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 bool conf_general_permanent_nrf_found = false;
 
 // Private variables
-mc_configuration mcconf, mcconf_old;
+mc_configuration mcconf, mcconf_old, mcconf2, mcconf_old2;
 
 void conf_general_init(void) {
 	// First, make sure that all relevant virtual addresses are assigned for page swapping.
 	memset(VirtAddVarTab, 0, sizeof(VirtAddVarTab));
 
 	int ind = 0;
-	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
+	for (unsigned int i = 0; i < ((sizeof(mc_configuration) / 2)); i++) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_MCCONF + i;
 	}
-
-	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+	for (unsigned int i = 0; i < ((sizeof(mc_configuration) / 2)); i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_MCCONF + i;
+	}
+	for (unsigned int i = 0; i < (sizeof(app_configuration) / 2); i++) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_APPCONF + i;
 	}
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 }
 
@@ -155,6 +160,10 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_nrf_conf.address[1] = APPCONF_NRF_ADDR_B1;
 	conf->app_nrf_conf.address[2] = APPCONF_NRF_ADDR_B2;
 	conf->app_nrf_conf.send_crc_ack = APPCONF_NRF_SEND_CRC_ACK;
+
+	conf->app_smart_switch_conf.msec_pressed_for_off = APPCONF_MSEC_PRESSED_FOR_OFF;
+	conf->app_smart_switch_conf.push_to_start_enabled = APPCONF_PUSH_TO_START_ENABLED;
+	conf->app_smart_switch_conf.sec_inactive_for_off = APPCONF_SEC_INACTIVE_FOR_OFF;
 }
 
 /**
@@ -256,19 +265,16 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_sat_comp = MCCONF_FOC_SAT_COMP;
 	conf->foc_temp_comp = MCCONF_FOC_TEMP_COMP;
 	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
-	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
 
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;
 	conf->s_pid_kd = MCCONF_S_PID_KD;
-	conf->s_pid_kd_filter = MCCONF_S_PID_KD_FILTER;
 	conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
 	conf->s_pid_allow_braking = MCCONF_S_PID_ALLOW_BRAKING;
 
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
 	conf->p_pid_kd = MCCONF_P_PID_KD;
-	conf->p_pid_kd_filter = MCCONF_P_PID_KD_FILTER;
 	conf->p_pid_ang_div = MCCONF_P_PID_ANG_DIV;
 
 	conf->cc_startup_boost_duty = MCCONF_CC_STARTUP_BOOST_DUTY;
@@ -288,7 +294,10 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_bldc_f_sw_max = MCCONF_M_BLDC_F_SW_MAX;
 	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
 	conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
-	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
+	conf->m_motor_temp_throttle_enable = MCCONF_M_MOTOR_TEMP_THROTTLE_ENABLE;
+	conf->m_wheel_diameter = MCCONF_M_WHEEL_DIAMETER;
+	conf->m_gear_ratio = MCCONF_M_GEAR_RATIO;
+	conf->m_motor_poles = MCCONF_M_MOTOR_POLES;
 }
 
 /**
@@ -302,11 +311,12 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
 
-	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+	for (unsigned int i = 0; i < (sizeof(app_configuration) / 2); i++) {
 		if (EE_ReadVariable(EEPROM_BASE_APPCONF + i, &var) == 0) {
 			conf_addr[2 * i] = (var >> 8) & 0xFF;
 			conf_addr[2 * i + 1] = var & 0xFF;
-		} else {
+		}
+		else {
 			is_ok = false;
 			break;
 		}
@@ -338,9 +348,9 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	uint16_t var;
 
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+	for (unsigned int i = 0; i < (sizeof(app_configuration) / 2); i++) {
 		var = (conf_addr[2 * i] << 8) & 0xFF00;
 		var |= conf_addr[2 * i + 1] & 0xFF;
 
@@ -365,16 +375,32 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
  * @param conf
  * A pointer to a mc_configuration struct to write the read configuration to.
  */
-void conf_general_read_mc_configuration(mc_configuration *conf) {
+void conf_general_read_mc_configuration(mc_configuration *conf, mc_configuration *conf2) {
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
+	uint8_t *conf_addr2 = (uint8_t*)conf2;
 	uint16_t var;
+	int ind = 0;
 
-	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
-		if (EE_ReadVariable(EEPROM_BASE_MCCONF + i, &var) == 0) {
+	for (unsigned int i = 0; i < (sizeof(mc_configuration) / 2); i++) {
+		if (EE_ReadVariable(EEPROM_BASE_MCCONF + ind, &var) == 0) {
+			ind++;
 			conf_addr[2 * i] = (var >> 8) & 0xFF;
 			conf_addr[2 * i + 1] = var & 0xFF;
-		} else {
+		}
+		else {
+			is_ok = false;
+			break;
+		}
+	}
+
+	for (unsigned int i = 0; i < (sizeof(mc_configuration) / 2); i++) {
+		if (EE_ReadVariable(EEPROM_BASE_MCCONF + ind, &var) == 0) {
+			ind++;
+			conf_addr2[2 * i] = (var >> 8) & 0xFF;
+			conf_addr2[2 * i + 1] = var & 0xFF;
+		}
+		else {
 			is_ok = false;
 			break;
 		}
@@ -382,6 +408,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 
 	if (!is_ok) {
 		conf_general_get_default_mc_configuration(conf);
+		conf_general_get_default_mc_configuration(conf2);
 	}
 }
 
@@ -391,7 +418,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
  * @param conf
  * A pointer to the configuration that should be stored.
  */
-bool conf_general_store_mc_configuration(mc_configuration *conf) {
+bool conf_general_store_mc_configuration(mc_configuration *conf, mc_configuration *conf2) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 
@@ -402,19 +429,31 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
+	uint8_t *conf_addr2 = (uint8_t*)conf2;
 	uint16_t var;
-
+	int ind = 0;
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
+	for (unsigned int i = 0; i < (sizeof(mc_configuration) / 2); i++) {
 		var = (conf_addr[2 * i] << 8) & 0xFF00;
 		var |= conf_addr[2 * i + 1] & 0xFF;
 
-		if (EE_WriteVariable(EEPROM_BASE_MCCONF + i, var) != FLASH_COMPLETE) {
+		if (EE_WriteVariable(EEPROM_BASE_MCCONF + ind, var) != FLASH_COMPLETE) {
 			is_ok = false;
 			break;
 		}
+		ind++;
+	}
+	for (unsigned int i = 0; i < (sizeof(mc_configuration) / 2); i++) {
+		var = (conf_addr2[2 * i] << 8) & 0xFF00;
+		var |= conf_addr2[2 * i + 1] & 0xFF;
+
+		if (EE_WriteVariable(EEPROM_BASE_MCCONF + ind, var) != FLASH_COMPLETE) {
+			is_ok = false;
+			break;
+		}
+		ind++;
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
@@ -426,8 +465,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	return is_ok;
 }
 
-bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
-		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res) {
+bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty, float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res) {
 
 	int ok_steps = 0;
 	const float spinup_to_duty = 0.5;
@@ -444,10 +482,10 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mcconf.sl_cycle_int_limit = 50;
 	mcconf.sl_min_erpm_cycle_int_limit = 1100;
 	mcconf.m_invert_direction = false;
-	mc_interface_set_configuration(&mcconf);
+	mc_interface_set_configuration(&mcconf, &mcconf);
 
 	// Wait maximum 5s for fault code to disappear
-	for (int i = 0;i < 500;i++) {
+	for (int i = 0; i < 500; i++) {
 		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
 			break;
 		}
@@ -467,31 +505,32 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mc_interface_lock();
 
 	mc_interface_lock_override_once();
-	mc_interface_set_current(current);
+	mc_interface_set_current(current, current);
 
 	// Try to spin up the motor. Up to three attempts with different settings are made.
 	bool started = false;
-	for (int i = 0;i < 3;i++) {
+	for (int i = 0; i < 3; i++) {
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
 			mcconf.sl_min_erpm = 2 * min_rpm;
 			mcconf.sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface_set_configuration(&mcconf, &mcconf);
 			chThdSleepMilliseconds(1000);
 			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
-		} else if (i == 2) {
+			mc_interface_set_current(current, current);
+		}
+		else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
 			mcconf.sl_min_erpm = 4 * min_rpm;
 			mcconf.comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
+			mc_interface_set_configuration(&mcconf, &mcconf);
 			chThdSleepMilliseconds(1000);
 			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
+			mc_interface_set_current(current, current);
 		}
 
 		int cnt = 0;
@@ -524,9 +563,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	if (!started) {
-		mc_interface_set_current(0.0);
+		mc_interface_set_current(0.0, 0.0);
 		timeout_configure(tout, tout_c);
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_set_configuration(&mcconf_old, &mcconf_old);
 		mc_interface_unlock();
 		return false;
 	}
@@ -538,17 +577,18 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Run for a while to get hall sensor samples
 	mc_interface_lock_override_once();
-	mc_interface_set_duty(spinup_to_duty);
+	mc_interface_set_duty(spinup_to_duty, spinup_to_duty);
 	chThdSleepMilliseconds(400);
 
 	// Release the motor and wait a few commutations
 	mc_interface_lock_override_once();
-	mc_interface_set_current(0.0);
+	mc_interface_set_current(0.0, 0.0);
 	int tacho = mc_interface_get_tachometer_value(0);
-	for (int i = 0;i < 2000;i++) {
+	for (int i = 0; i < 2000; i++) {
 		if ((mc_interface_get_tachometer_value(0) - tacho) < 3) {
 			chThdSleepMilliseconds(1);
-		} else {
+		}
+		else {
 			ok_steps++;
 			break;
 		}
@@ -557,10 +597,11 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	// Average the cycle integrator for 50 commutations
 	mcpwm_read_reset_avg_cycle_integrator();
 	tacho = mc_interface_get_tachometer_value(false);
-	for (int i = 0;i < 3000;i++) {
+	for (int i = 0; i < 3000; i++) {
 		if ((mc_interface_get_tachometer_value(false) - tacho) < 50) {
 			chThdSleepMilliseconds(1);
-		} else {
+		}
+		else {
 			ok_steps++;
 			break;
 		}
@@ -572,29 +613,31 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	*int_limit = mcpwm_read_reset_avg_cycle_integrator();
 
 	// Wait for the motor to slow down
-	for (int i = 0;i < 5000;i++) {
+	for (int i = 0; i < 5000; i++) {
 		if (mc_interface_get_duty_cycle_now() > low_duty) {
 			chThdSleepMilliseconds(1);
-		} else {
+		}
+		else {
 			ok_steps++;
 			break;
 		}
 	}
 
 	mc_interface_lock_override_once();
-	mc_interface_set_duty(low_duty);
+	mc_interface_set_duty(low_duty, low_duty);
 
 	// Average the cycle integrator for 100 commutations
 	mcpwm_read_reset_avg_cycle_integrator();
 	tacho = mc_interface_get_tachometer_value(0);
 	float rpm_sum = 0.0;
 	float rpm_iterations = 0.0;
-	for (int i = 0;i < 3000;i++) {
+	for (int i = 0; i < 3000; i++) {
 		if ((mc_interface_get_tachometer_value(0) - tacho) < 100) {
 			rpm_sum += mc_interface_get_rpm();
 			rpm_iterations += 1;
 			chThdSleepMilliseconds(1);
-		} else {
+		}
+		else {
 			ok_steps++;
 			break;
 		}
@@ -613,7 +656,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	*bemf_coupling_k = avg_cycle_integrator_running;
 
 	// Restore settings
-	mc_interface_set_configuration(&mcconf_old);
+	mc_interface_set_configuration(&mcconf_old, &mcconf_old);
 	timeout_configure(tout, tout_c);
 
 	mc_interface_unlock();
@@ -642,34 +685,16 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
  * @return
  * True for success, false otherwise.
  */
-bool conf_general_measure_flux_linkage(float current, float duty,
-		float min_erpm, float res, float *linkage) {
-	mcconf = *mc_interface_get_configuration();
+bool conf_general_measure_flux_linkage(float *linkage, float *linkage2, bool *dir1, bool *dir2) {
+	/*mcconf = *mc_interface_get_configuration();
+	mcconf2 = *mc_interface_get_configuration2();
 	mcconf_old = mcconf;
-
-	mcconf.motor_type = MOTOR_TYPE_BLDC;
+	mcconf_old2 = mcconf2;
+	mcconf.motor_type = MOTOR_TYPE_FOC;
 	mcconf.sensor_mode = SENSOR_MODE_SENSORLESS;
-	mcconf.comm_mode = COMM_MODE_INTEGRATE;
-	mcconf.sl_phase_advance_at_br = 1.0;
-	mcconf.sl_min_erpm = min_erpm;
-	mcconf.m_bldc_f_sw_min = 10000.0;
-	mcconf.sl_bemf_coupling_k = 300;
-	mcconf.sl_cycle_int_limit = 50;
-	mcconf.sl_min_erpm_cycle_int_limit = 1100;
-	mc_interface_set_configuration(&mcconf);
-
-	// Wait maximum 5s for fault code to disappear
-	for (int i = 0;i < 500;i++) {
-		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
-			break;
-		}
-		chThdSleepMilliseconds(10);
-	}
-
-	// Wait one second for things to get ready after
-	// the fault disapears. (will fry things otherwise...)
-	// TODO: Add FAULT_INIT_NOT_DONE
-	chThdSleepMilliseconds(1000);
+	mcconf2.motor_type = MOTOR_TYPE_FOC;
+	mcconf2.sensor_mode = SENSOR_MODE_SENSORLESS;
+	mc_interface_set_configuration(&mcconf, &mcconf2);*/
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -679,106 +704,231 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	mc_interface_lock();
 
-	mc_interface_lock_override_once();
-	mc_interface_set_current(current);
-
-	// Try to spin up the motor. Up to three attempts with different settings are made.
-	bool started = false;
-	for (int i = 0;i < 4;i++) {
-		if (i == 1) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
-			mcconf.sl_cycle_int_limit = 250;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
-			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
-		} else if (i == 2) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
-			mcconf.sl_min_erpm = 2 * min_erpm;
-			mcconf.sl_cycle_int_limit = 20;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
-			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
-		} else if (i == 3) {
-			mc_interface_lock_override_once();
-			mc_interface_release_motor();
-			mcconf.sl_min_erpm = 4 * min_erpm;
-			mcconf.comm_mode = COMM_MODE_DELAY;
-			mc_interface_lock_override_once();
-			mc_interface_set_configuration(&mcconf);
-			chThdSleepMilliseconds(1000);
-			mc_interface_lock_override_once();
-			mc_interface_set_current(current);
-		}
-
-		int cnt = 0;
-		bool switch_done = false;
-		started = true;
-
-		while (mc_interface_get_duty_cycle_now() < duty) {
-			chThdSleepMilliseconds(1);
-			cnt++;
-
-			if (mc_interface_get_duty_cycle_now() >= (duty / 2.0) && !switch_done) {
-				mcpwm_switch_comm_mode(COMM_MODE_DELAY);
-				switch_done = true;
-			}
-
-			if (cnt > 2000 && !switch_done) {
-				started = false;
-				break;
-			}
-
-			if (cnt >= 5000) {
-				started = false;
-				break;
-			}
-		}
-
-		if (switch_done) {
+	for (int i = 0; i < 500; i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
 			break;
 		}
+		chThdSleepMilliseconds(10);
 	}
 
-	if (!started) {
-		mc_interface_set_current(0.0);
-		timeout_configure(tout, tout_c);
-		mc_interface_set_configuration(&mcconf_old);
-		mc_interface_unlock();
-		return false;
+	int j = 0;
+	mc_interface_measure_flux_linkage_start();
+	while (j < 15000) {
+		j++;
+		if (mc_interface_flux_linkage_measurements_done()) {
+			break;
+		}
+		chThdSleepMilliseconds(1);
 	}
-
-	mc_interface_lock_override_once();
-	mc_interface_set_duty(duty);
-
-	float avg_voltage = 0.0;
-	float avg_rpm = 0.0;
-	float avg_current = 0.0;
-	float samples = 0.0;
-	for (int i = 0;i < 2000;i++) {
-		avg_voltage += GET_INPUT_VOLTAGE() * mc_interface_get_duty_cycle_now();
-		avg_rpm += mc_interface_get_rpm();
-		avg_current += mc_interface_get_tot_current();
-		samples += 1.0;
-		chThdSleepMilliseconds(1.0);
+	static bool result1, result2;
+	float link1tmp = 0;
+	float link2tmp = 0;
+	mc_interface_measure_flux_linkage_finish(&link1tmp, &link2tmp, &result1, &result2, dir1, dir2);
+	if (result1) {
+		*linkage = link1tmp;
 	}
-
+	else {
+		*linkage = 0;
+	}
+	if (result2) {
+		*linkage2 = link2tmp;
+	}
+	else {
+		*linkage2 = 0;
+	}
 	timeout_configure(tout, tout_c);
-	mc_interface_set_configuration(&mcconf_old);
+	//mc_interface_set_configuration(&mcconf_old, &mcconf_old2);
 	mc_interface_unlock();
-	mc_interface_set_current(0.0);
+	mc_interface_set_current(0.0, 0.0);
+	/*mcconf.comm_mode = COMM_MODE_INTEGRATE;
+	 mcconf.sl_phase_advance_at_br = 1.0;
+	 mcconf.sl_min_erpm = min_erpm;
+	 mcconf.sl_bemf_coupling_k = 300;
+	 mcconf.sl_cycle_int_limit = 50;
+	 mcconf.sl_min_erpm_cycle_int_limit = 1100;
+	 mcconf2.motor_type = MOTOR_TYPE_BLDC;
+	 mcconf2.sensor_mode = SENSOR_MODE_SENSORLESS;
+	 mcconf2.comm_mode = COMM_MODE_INTEGRATE;
+	 mcconf2.sl_phase_advance_at_br = 1.0;
+	 mcconf2.sl_min_erpm = min_erpm;
+	 mcconf2.sl_bemf_coupling_k = 300;
+	 mcconf2.sl_cycle_int_limit = 50;
+	 mcconf2.sl_min_erpm_cycle_int_limit = 1100;
+	 mc_interface_set_configuration(&mcconf,&mcconf2);
 
-	avg_voltage /= samples;
-	avg_rpm /= samples;
-	avg_current /= samples;
-	avg_voltage -= avg_current * res * 2.0;
+	 // Wait maximum 5s for fault code to disappear
+	 for (int i = 0;i < 500;i++) {
+	 if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+	 break;
+	 }
+	 chThdSleepMilliseconds(10);
+	 }
 
-	*linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm);
+	 // Wait one second for things to get ready after
+	 // the fault disapears. (will fry things otherwise...)
+	 // TODO: Add FAULT_INIT_NOT_DONE
+	 chThdSleepMilliseconds(1000);
 
+	 // Disable timeout
+	 systime_t tout = timeout_get_timeout_msec();
+	 float tout_c = timeout_get_brake_current();
+	 timeout_reset();
+	 timeout_configure(60000, 0.0);
+
+	 mc_interface_lock();
+
+	 mc_interface_lock_override_once();
+	 mc_interface_set_current(current,current);
+
+	 // Try to spin up the motor. Up to three attempts with different settings are made.
+	 bool started = false;
+	 bool started2 = false;
+	 for (int i = 0;i < 4;i++) {
+	 if (i == 1) {
+	 mc_interface_lock_override_once();
+	 mc_interface_release_motor();
+	 if(!started){
+	 mcconf.sl_cycle_int_limit = 250;
+	 }
+	 if(!started2){
+	 mcconf2.sl_cycle_int_limit = 250;
+	 }
+	 mc_interface_lock_override_once();
+	 mc_interface_set_configuration(&mcconf,&mcconf2);
+	 chThdSleepMilliseconds(1000);
+	 mc_interface_lock_override_once();
+	 mc_interface_set_current(current,current);
+	 } else if (i == 2) {
+	 mc_interface_lock_override_once();
+	 mc_interface_release_motor();
+	 if(!started){
+	 mcconf.sl_min_erpm = 2 * min_erpm;
+	 mcconf.sl_cycle_int_limit = 20;
+	 }
+	 if(!started2){
+	 mcconf2.sl_min_erpm = 2 * min_erpm;
+	 mcconf2.sl_cycle_int_limit = 20;
+	 }
+	 mc_interface_lock_override_once();
+	 mc_interface_set_configuration(&mcconf,&mcconf2);
+	 chThdSleepMilliseconds(1000);
+	 mc_interface_lock_override_once();
+	 mc_interface_set_current(current,current);
+	 } else if (i == 3) {
+	 mc_interface_lock_override_once();
+	 mc_interface_release_motor();
+	 if(!started){
+	 mcconf.sl_min_erpm = 4 * min_erpm;
+	 mcconf.comm_mode = COMM_MODE_DELAY;
+	 }
+	 if(!started2){
+	 mcconf2.sl_min_erpm = 4 * min_erpm;
+	 mcconf2.comm_mode = COMM_MODE_DELAY;
+	 }
+	 mc_interface_lock_override_once();
+	 mc_interface_set_configuration(&mcconf,&mcconf2);
+	 chThdSleepMilliseconds(1000);
+	 mc_interface_lock_override_once();
+	 mc_interface_set_current(current,current);
+	 }
+
+	 int cnt = 0;
+
+	 bool switch_done = false;
+	 bool switch_done2 = false;
+	 started = false;
+	 started2 = false;
+	 while (!started || !started2) {
+	 chThdSleepMilliseconds(1);
+	 cnt++;
+	 if (mcpwm_get_duty_cycle_now2() >= (duty / 2.0) && !switch_done2 ){
+	 mcpwm_switch_comm_mode2(COMM_MODE_DELAY);
+	 switch_done2 = true;
+	 }
+
+	 if (mcpwm_get_duty_cycle_now() >= (duty / 2.0) && !switch_done ) {
+	 mcpwm_switch_comm_mode(COMM_MODE_DELAY);
+	 switch_done = true;
+	 }
+	 if(mcpwm_get_duty_cycle_now() >= duty){
+	 started = true;
+	 }
+	 if(mcpwm_get_duty_cycle_now2() >= duty){
+	 started2 = true;
+	 }
+
+	 if (cnt > 2000 && !switch_done && !switch_done2) {
+	 break;
+	 }
+
+	 if (cnt >= 4000) {
+	 break;
+	 }
+	 }
+
+	 if (started && started2) {
+	 break;
+	 }
+	 }
+
+
+
+	 if (!started && !started2) {
+	 mc_interface_set_current(0.0,0.0);
+	 timeout_configure(tout, tout_c);
+	 mc_interface_set_configuration(&mcconf_old,&mcconf_old2);
+	 mc_interface_unlock();
+	 return false;
+	 }
+
+	 mc_interface_lock_override_once();
+	 mc_interface_set_duty(duty,duty);
+
+	 float avg_voltage = 0.0;
+	 float avg_rpm = 0.0;
+	 float avg_current = 0.0;
+	 float avg_voltage2 = 0.0;
+	 float avg_rpm2 = 0.0;
+	 float avg_current2 = 0.0;
+	 float samples = 0.0;
+	 for (int i = 0;i < 2000;i++) {
+	 avg_voltage += GET_INPUT_VOLTAGE() * mcpwm_get_duty_cycle_now();
+	 avg_voltage2 += GET_INPUT_VOLTAGE() * mcpwm_get_duty_cycle_now2();
+	 avg_rpm += mcpwm_get_rpm();
+	 avg_rpm2 += mcpwm_get_rpm2();
+	 avg_current += mcpwm_get_tot_current();
+	 avg_current2 += mcpwm_get_tot_current2();
+	 samples += 1.0;
+	 chThdSleepMilliseconds(1.0);
+	 }
+
+	 timeout_configure(tout, tout_c);
+	 mc_interface_set_configuration(&mcconf_old,&mcconf_old2);
+	 mc_interface_unlock();
+	 mc_interface_set_current(0.0,0.0);
+
+	 //avg_voltage1 /= data1;
+	 //avg_rpm1 /= data1;
+	 //avg_current /= samples;
+	 //avg_voltage -= avg_current * res * 2.0;
+
+	 //avg_voltage2 /= data2;
+	 //avg_rpm2 /= data2;
+	 //avg_current2 /= samples;
+	 //avg_voltage2 -= avg_current2 * res2 * 2.0;
+
+	 if (enough_data1) {
+	 *linkage = avg_voltage1 * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm1);
+	 }
+	 else {
+	 *linkage = 0;
+	 }
+	 if (enough_data2) {
+	 *linkage2 = avg_voltage2 * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm2);
+	 }
+	 else {
+	 *linkage2 = 0;
+	 }
+	 */
 	return true;
 }

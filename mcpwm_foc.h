@@ -1,5 +1,6 @@
 /*
 	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+    Copyright 2018 Jeffrey Friesen  jeff@enertionboards.com
 
 	This file is part of the VESC firmware.
 
@@ -30,6 +31,7 @@ void mcpwm_foc_deinit(void);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration);
 mc_state mcpwm_foc_get_state(void);
+temperature_values  mcpwm_foc_get_temperature(void);
 bool mcpwm_foc_is_dccal_done(void);
 void mcpwm_foc_stop_pwm(void);
 void mcpwm_foc_set_duty(float dutyCycle);
@@ -65,21 +67,24 @@ float mcpwm_foc_get_phase_observer(void);
 float mcpwm_foc_get_phase_encoder(void);
 float mcpwm_foc_get_vd(void);
 float mcpwm_foc_get_vq(void);
+bool mcpwm_foc_one_turn_openloop(float current, bool dir);
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
-float mcpwm_foc_measure_resistance(float current, int samples);
-float mcpwm_foc_measure_inductance(float duty, int samples, float *curr);
-bool mcpwm_foc_measure_res_ind(float *res, float *ind);
+void mcpwm_foc_measure_resistance(float current, int samples,float *res,float *res2);
+void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *l1, float *l2);
+bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *res2, float *ind2);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_inj_adc_isr_duration(void);
 
 // Interrupt handlers
 void mcpwm_foc_tim_sample_int_handler(void);
+float mcpwm_foc_get_v_bus(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET		10 // Offset for the inductance measurement sample time in timer ticks
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP		50 // Current rise time compensation
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for injected ADC samples
+#define MCPWM_FOC_I_FILTER_CONST					0.1 // Filter constant for the current filters
+#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(4) // Offset from timer top for injected ADC samples
 
 #endif /* MCPWM_FOC_H_ */

@@ -90,7 +90,7 @@ endif
 #
 
 # Define project name here
-PROJECT = BLDC_4_ChibiOS
+PROJECT = UNITY
 
 # Imported source files and paths
 CHIBIOS = ChibiOS_3.0.2
@@ -131,8 +131,10 @@ CSRC = $(STARTUPSRC) \
        digital_filter.c \
        ledpwm.c \
        mcpwm.c \
+       mcpwm2.c \
        servo_dec.c \
        utils.c \
+       servo.c \
        servo_simple.c \
        packet.c \
        terminal.c \
@@ -144,9 +146,13 @@ CSRC = $(STARTUPSRC) \
        ws2811.c \
        led_external.c \
        encoder.c \
+       encoder2.c \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \
+       mcpwm_foc2.c \
+       smart_switch.c \
+       bt_uartcomm.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC)

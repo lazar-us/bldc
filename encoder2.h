@@ -17,23 +17,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef LEDPWM_H_
-#define LEDPWM_H_
+#ifndef ENCODER2_H_
+#define ENCODER2_H_
 
-// Settings
-#define LEDPWM_LED_NUM		4
-#define LEDPWM_CNT_TOP		50
-
-#define LED_GREEN			0
-#define LED_RED				1
-#define SWITCH_LED_1             2
-#define SWITCH_LED_2             3
+#include "conf_general.h"
 
 // Functions
-void ledpwm_init(void);
-void ledpwm_set_intensity(unsigned int led, float intensity);
-void ledpwm_led_on(int led);
-void ledpwm_led_off(int led);
-void ledpwm_update_pwm(void);
+void encoder_deinit2(void);
+void encoder_init_abi2(uint32_t counts);
+void encoder_init_as5047p_spi2(void);
+bool encoder_is_configured2(void);
+float encoder_read_deg2(void);
+void encoder_reset2(void);
+void encoder_tim_isr2(void);
+void encoder_set_counts2(uint32_t counts);
+bool encoder_index_found2(void);
 
-#endif /* LEDPWM_H_ */
+#endif /* ENCODER_H_ */

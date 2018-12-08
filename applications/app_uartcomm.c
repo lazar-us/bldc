@@ -31,6 +31,8 @@
 #define PACKET_HANDLER				1
 #define SERIAL_RX_BUFFER_SIZE		1024
 
+
+
 // Threads
 static THD_FUNCTION(packet_process_thread, arg);
 static THD_WORKING_AREA(packet_process_thread_wa, 4096);

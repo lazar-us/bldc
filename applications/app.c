@@ -24,6 +24,7 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "comm_can.h"
+#include "smart_switch.h"
 
 // Private variables
 static app_configuration appconf;
@@ -110,6 +111,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_configure(&appconf.app_adc_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
+	smart_switch_set_conf(&appconf.app_smart_switch_conf);
 
 #ifdef APP_CUSTOM_TO_USE
 	app_custom_configure(&appconf);

@@ -25,9 +25,11 @@ void drv8301_init(void);
 void drv8301_set_oc_adj(int val);
 void drv8301_set_oc_mode(drv8301_oc_mode mode);
 int drv8301_read_faults(void);
+int drv8301_read_faults2(void);
 void drv8301_reset_faults(void);
 char* drv8301_faults_to_string(int faults);
 unsigned int drv8301_read_reg(int reg);
+unsigned int drv8301_read_reg2(int reg);
 void drv8301_write_reg(int reg, int data);
 
 // Defines

@@ -50,6 +50,7 @@ void mcpwm_stop_pwm(void);
 float mcpwm_get_tot_current(void);
 float mcpwm_get_tot_current_filtered(void);
 float mcpwm_get_tot_current_directional(void);
+unsigned int mcpwm_get_timer_top(void);
 float mcpwm_get_tot_current_directional_filtered(void);
 float mcpwm_get_tot_current_in(void);
 float mcpwm_get_tot_current_in_filtered(void);

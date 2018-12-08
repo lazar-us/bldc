@@ -96,4 +96,16 @@ void ledpwm_update_pwm(void) {
 	} else {
 		LED_RED_ON();
 	}
+
+    if (cnt >= led_values[2]) {
+        LED_SWITCH_1_OFF();
+    } else {
+        LED_SWITCH_1_ON();
+    }
+
+    if (cnt >= led_values[3]) {
+        LED_SWITCH_2_OFF();
+    } else {
+        LED_SWITCH_2_ON();
+    }
 }

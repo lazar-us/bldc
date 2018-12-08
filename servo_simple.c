@@ -28,7 +28,7 @@
 // Settings
 #define TIM_CLOCK			1000000 // Hz
 
-#if SERVO_OUT_ENABLE
+#if SERVO_OUT_ENABLE && SERVO_OUT_SIMPLE
 
 void servo_simple_init(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -37,47 +37,36 @@ void servo_simple_init(void) {
 	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_FLOATING);
 
-	HW_ICU_TIM_CLK_EN();
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Period = (uint16_t)((uint32_t)TIM_CLOCK / (uint32_t)SERVO_OUT_RATE_HZ);
 	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)((168000000 / 2) / TIM_CLOCK) - 1;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
-	TIM_TimeBaseInit(HW_ICU_TIMER, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = 0;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 
-	if (HW_ICU_CHANNEL == ICU_CHANNEL_1) {
-		TIM_OC1Init(HW_ICU_TIMER, &TIM_OCInitStructure);
-		TIM_OC1PreloadConfig(HW_ICU_TIMER, TIM_OCPreload_Enable);
-	} else if (HW_ICU_CHANNEL == ICU_CHANNEL_2) {
-		TIM_OC2Init(HW_ICU_TIMER, &TIM_OCInitStructure);
-		TIM_OC2PreloadConfig(HW_ICU_TIMER, TIM_OCPreload_Enable);
-	}
+	TIM_OC2Init(TIM3, &TIM_OCInitStructure);
+	TIM_OC2PreloadConfig(TIM3, TIM_OCPreload_Enable);
 
-	TIM_ARRPreloadConfig(HW_ICU_TIMER, ENABLE);
+	TIM_ARRPreloadConfig(TIM3, ENABLE);
 
 	servo_simple_set_output(0.5);
 
-	TIM_Cmd(HW_ICU_TIMER, ENABLE);
+	TIM_Cmd(TIM3, ENABLE);
 }
 
 void servo_simple_set_output(float out) {
 	utils_truncate_number(&out, 0.0, 1.0);
 
-	float us = (float)SERVO_OUT_PULSE_MIN_US + out *
-			(float)(SERVO_OUT_PULSE_MAX_US - SERVO_OUT_PULSE_MIN_US);
+	float us = (float)SERVO_OUT_PULSE_MIN_US + out * (float)(SERVO_OUT_PULSE_MAX_US - SERVO_OUT_PULSE_MIN_US);
 	us *= (float)TIM_CLOCK / 1000000.0;
-
-	if (HW_ICU_CHANNEL == ICU_CHANNEL_1) {
-		HW_ICU_TIMER->CCR1 = (uint32_t)us;
-	} else if (HW_ICU_CHANNEL == ICU_CHANNEL_2) {
-		HW_ICU_TIMER->CCR2 = (uint32_t)us;
-	}
+	TIM3->CCR2 = (uint32_t)us;
 }
 
 #endif

@@ -22,7 +22,7 @@
 
 // Default settings
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_BLDC
+#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_PWM_MODE
 #define MCCONF_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
@@ -45,7 +45,7 @@
 #define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-40.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-30.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
@@ -57,16 +57,16 @@
 #define MCCONF_L_MAX_VOLTAGE			57.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_L_BATTERY_CUT_START
-#define MCCONF_L_BATTERY_CUT_START		10.0	// Start limiting the positive current at this voltage
+#define MCCONF_L_BATTERY_CUT_START		34.0	// Start limiting the positive current at this voltage
 #endif
 #ifndef MCCONF_L_BATTERY_CUT_END
-#define MCCONF_L_BATTERY_CUT_END		8.0		// Limit the positive current completely at this voltage
+#define MCCONF_L_BATTERY_CUT_END		31.0		// Limit the positive current completely at this voltage
 #endif
 #ifndef MCCONF_L_RPM_MAX
-#define MCCONF_L_RPM_MAX				100000.0	// The motor speed limit (Upper)
+#define MCCONF_L_RPM_MAX				140000.0	// The motor speed limit (Upper)
 #endif
 #ifndef MCCONF_L_RPM_MIN
-#define MCCONF_L_RPM_MIN				-100000.0	// The motor speed limit (Lower)
+#define MCCONF_L_RPM_MIN				-140000.0	// The motor speed limit (Lower)
 #endif
 #ifndef MCCONF_L_RPM_START
 #define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
@@ -90,13 +90,13 @@
 #define MCCONF_L_LIM_TEMP_FET_START		85.0	// MOSFET temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_END
-#define MCCONF_L_LIM_TEMP_FET_END		100.0	// MOSFET temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_FET_END		110.0	// MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_START
 #define MCCONF_L_LIM_TEMP_MOTOR_START	85.0	// MOTOR temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_END
-#define MCCONF_L_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_MOTOR_END		140.0	// MOTOR temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_ACCEL_DEC
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
@@ -118,9 +118,6 @@
 #ifndef MCCONF_S_PID_KD
 #define MCCONF_S_PID_KD					0.0001	// Derivative gain
 #endif
-#ifndef MCCONF_S_PID_KD_FILTER
-#define MCCONF_S_PID_KD_FILTER			0.2	// Derivative filter
-#endif
 #ifndef MCCONF_S_PID_MIN_RPM
 #define MCCONF_S_PID_MIN_RPM			900.0	// Minimum allowed RPM
 #endif
@@ -137,9 +134,6 @@
 #endif
 #ifndef MCCONF_P_PID_KD
 #define MCCONF_P_PID_KD					0.0004	// Derivative gain
-#endif
-#ifndef MCCONF_P_PID_KD_FILTER
-#define MCCONF_P_PID_KD_FILTER			0.2		// Derivative filter
 #endif
 #ifndef MCCONF_P_PID_ANG_DIV
 #define MCCONF_P_PID_ANG_DIV			1.0		// Divide angle by this value
@@ -213,10 +207,10 @@
 
 // FOC
 #ifndef MCCONF_FOC_CURRENT_KP
-#define MCCONF_FOC_CURRENT_KP			0.03
+#define MCCONF_FOC_CURRENT_KP			0.027
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI			50.0
+#define MCCONF_FOC_CURRENT_KI			88.0
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW					20000.0
@@ -243,16 +237,16 @@
 #define MCCONF_FOC_PLL_KI				40000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L				0.000007
+#define MCCONF_FOC_MOTOR_L				0.000014
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R				0.015
+#define MCCONF_FOC_MOTOR_R				0.045
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00245
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.0058
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN		9e7		// Can be something like 600 / L
+#define MCCONF_FOC_OBSERVER_GAIN		27e6		// Can be something like 600 / L
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN_SLOW
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.3		// Observer gain scale at minimum duty cycle
@@ -303,7 +297,7 @@
 #define MCCONF_FOC_HALL_TAB_7			255
 #endif
 #ifndef MCCONF_FOC_SL_ERPM
-#define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
+#define MCCONF_FOC_SL_ERPM				3500.0	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
@@ -319,9 +313,6 @@
 #endif
 #ifndef MCCONF_FOC_TEMP_COMP_BASE_TEMP
 #define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25.0	// Motor temperature compensation base temperature
-#endif
-#ifndef MCCONF_FOC_CURRENT_FILTER_CONST
-#define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
 #endif
 
 // Misc
@@ -350,19 +341,27 @@
 #define MCCONF_M_DRV8301_OC_ADJ			16 // DRV8301 over current protection threshold
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MIN
-#define MCCONF_M_BLDC_F_SW_MIN			3000 // Minimum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MIN			20000 // Minimum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MAX
-#define MCCONF_M_BLDC_F_SW_MAX			40000 // Maximum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MAX			20000 // Maximum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_DC_F_SW
-#define MCCONF_M_DC_F_SW				35000 // Switching frequency in dc mode
+#define MCCONF_M_DC_F_SW				20000 // Switching frequency in dc mode
 #endif
 #ifndef MCCONF_M_NTC_MOTOR_BETA
 #define MCCONF_M_NTC_MOTOR_BETA			3380.0 // Beta value for motor termistor
 #endif
-#ifndef MCCONF_M_OUT_AUX_MODE
-#define MCCONF_M_OUT_AUX_MODE			OUT_AUX_MODE_OFF // Auxiliary output mode
+#ifndef MCCONF_M_MOTOR_TEMP_THROTTLE_ENABLE
+#define MCCONF_M_MOTOR_TEMP_THROTTLE_ENABLE true
 #endif
-
+#ifndef MCCONF_M_WHEEL_DIAMETER
+#define MCCONF_M_WHEEL_DIAMETER 90.0
+#endif
+#ifndef MCCONF_M_GEAR_RATIO
+#define MCCONF_M_GEAR_RATIO 1.0
+#endif
+#ifndef MCCONF_M_MOTOR_POLES
+#define MCCONF_M_MOTOR_POLES 10.0
+#endif
 #endif /* MCCONF_DEFAULT_H_ */

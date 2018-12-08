@@ -291,7 +291,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			pwr = pwr_ramp;
 		}
 
-		float current_rel = 0.0;
+		float current = 0.0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
@@ -305,9 +305,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
 			current_mode = true;
 			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
+				current = pwr * mcconf->lo_current_motor_max_now;
 			} else {
-				current_rel = pwr;
+				current = pwr * fabsf(mcconf->lo_current_motor_min_now);
 			}
 
 			if (fabsf(pwr) < 0.001) {
@@ -321,9 +321,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
 			current_mode = true;
 			if (pwr >= 0.0) {
-				current_rel = pwr;
+				current = pwr * mcconf->lo_current_motor_max_now;
 			} else {
-				current_rel = fabsf(pwr);
+				current = fabsf(pwr * mcconf->lo_current_motor_min_now);
 				current_mode_brake = true;
 			}
 
@@ -332,7 +332,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 
 			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC && rev_button) {
-				current_rel = -current_rel;
+				current = -current;
 			}
 			break;
 
@@ -344,7 +344,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
+				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty),utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
 				send_duty = true;
 			}
 			break;
@@ -353,9 +353,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_PID_REV_CENTER:
 		case ADC_CTRL_TYPE_PID_REV_BUTTON:
 			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
+				current = pwr * mcconf->lo_current_motor_max_now;
 			} else {
-				current_rel = pwr;
+				current = pwr * fabsf(mcconf->lo_current_motor_min_now);
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
@@ -366,7 +366,7 @@ static THD_FUNCTION(adc_thread, arg) {
 					speed = pwr * fabsf(mcconf->l_min_erpm);
 				}
 
-				mc_interface_set_pid_speed(speed);
+				mc_interface_set_pid_speed(speed,speed);
 				send_duty = true;
 			}
 
@@ -386,7 +386,7 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power = 0;
 			}
 			pulses_without_power_before = ms_without_power;
-			mc_interface_set_brake_current(timeout_get_brake_current());
+			mc_interface_set_brake_current(timeout_get_brake_current(),timeout_get_brake_current());
 
 			if (config.multi_esc) {
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -429,7 +429,7 @@ static THD_FUNCTION(adc_thread, arg) {
 				pid_rpm = rpm_filtered;
 			}
 
-			mc_interface_set_pid_speed(pid_rpm);
+			mc_interface_set_pid_speed(pid_rpm,pid_rpm);
 
 			// Send the same duty cycle to the other controllers
 			if (config.multi_esc) {
@@ -481,23 +481,23 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		if (current_mode) {
 			if (current_mode_brake) {
-				mc_interface_set_brake_current_rel(current_rel);
+				mc_interface_set_brake_current(current,current);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake_rel(msg->id, current_rel);
+						comm_can_set_current_brake(msg->id, current);
 					}
 				}
 			} else {
-				float current_out = current_rel;
+				float current_out = current;
 				bool is_reverse = false;
 				if (current_out < 0.0) {
 					is_reverse = true;
 					current_out = -current_out;
-					current_rel = -current_rel;
+					current = -current;
 					rpm_local = -rpm_local;
 					rpm_lowest = -rpm_lowest;
 				}
@@ -515,27 +515,33 @@ static THD_FUNCTION(adc_thread, arg) {
 								}
 
 								float diff = rpm_tmp - rpm_lowest;
-								current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+								current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+								if (current_out < mcconf->cc_min_current) {
+									current_out = 0.0;
+								}
 							}
 
 							if (is_reverse) {
-								comm_can_set_current_rel(msg->id, -current_out);
+								comm_can_set_current(msg->id, -current_out);
 							} else {
-								comm_can_set_current_rel(msg->id, current_out);
+								comm_can_set_current(msg->id, current_out);
 							}
 						}
 					}
 
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
-						current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+						if (current_out < mcconf->cc_min_current) {
+							current_out = 0.0;
+						}
 					}
 				}
 
 				if (is_reverse) {
-					mc_interface_set_current_rel(-current_out);
+					mc_interface_set_current(-current_out,-current_out);
 				} else {
-					mc_interface_set_current_rel(current_out);
+					mc_interface_set_current(current_out,current_out);
 				}
 			}
 		}

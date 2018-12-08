@@ -23,8 +23,20 @@
 #include "isr_vector_table.h"
 #include "mc_interface.h"
 #include "mcpwm_foc.h"
+#include "mcpwm_foc2.h"
+#include "servo.h"
 #include "hw.h"
 #include "encoder.h"
+#include "encoder2.h"
+
+#if SERVO_OUT_ENABLE && !SERVO_OUT_SIMPLE
+CH_IRQ_HANDLER(TIM7_IRQHandler) {
+	CH_IRQ_PROLOGUE();
+	TIM_ClearITPendingBit(TIM7, TIM_IT_Update);
+	servo_irq();
+	CH_IRQ_EPILOGUE();
+}
+#endif
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -42,6 +54,7 @@ CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
 	}
 }
 
+
 CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 	if (TIM_GetITStatus(HW_ENC_TIM, TIM_IT_Update) != RESET) {
 		encoder_tim_isr();
@@ -51,11 +64,53 @@ CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 	}
 }
 
-CH_IRQ_HANDLER(TIM8_CC_IRQHandler) {
-	if (TIM_GetITStatus(TIM8, TIM_IT_CC1) != RESET) {
-		mcpwm_foc_tim_sample_int_handler();
+#ifdef HW_HAS_DUAL_MOTOR
+CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC2) {
+    if (EXTI_GetITStatus(HW_ENC_EXTI_LINE2) != RESET) {
+        encoder_reset2();
 
-		// Clear the IT pending bit
-		TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);
-	}
+        // Clear the EXTI line pending bit
+        EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE2);
+    }
 }
+
+CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC2) {
+    if (TIM_GetITStatus(HW_ENC_TIM2, TIM_IT_Update) != RESET) {
+        encoder_tim_isr2();
+
+        // Clear the IT pending bit
+        TIM_ClearITPendingBit(HW_ENC_TIM2, TIM_IT_Update);
+    }
+}
+
+/*CH_IRQ_HANDLER(TIM2_IRQHandler) {
+    if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
+        mcpwm_foc_tim_sample_int_handler();
+
+        // Clear the IT pending bit
+        TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
+    }
+    TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
+}*/
+
+
+CH_IRQ_HANDLER(TIM5_IRQHandler) {
+    if (TIM_GetITStatus(TIM5, TIM_IT_CC2) != RESET) {
+        mcpwm_foc_tim_sample_int_handler();
+
+        // Clear the IT pending bit
+        TIM_ClearITPendingBit(TIM5, TIM_IT_CC2);
+    }
+    TIM_ClearITPendingBit(TIM5, TIM_IT_CC2);
+}
+
+#else
+CH_IRQ_HANDLER(TIM8_CC_IRQHandler) {
+    if (TIM_GetITStatus(TIM8, TIM_IT_CC1) != RESET) {
+        mcpwm_foc_tim_sample_int_handler();
+
+        // Clear the IT pending bit
+        TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);
+    }
+}
+#endif

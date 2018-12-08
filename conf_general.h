@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -21,7 +21,7 @@
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR		3
+#define FW_VERSION_MAJOR		23
 #define FW_VERSION_MINOR		40
 
 #include "datatypes.h"
@@ -44,35 +44,11 @@
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
-// Benjamins first HW75_300 PCB with different LED pins and motor temp error
-//#define HW75_300_VEDDER_FIRST_PCB
-
 /*
  * Select only one hardware version
  */
-#if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
-	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
-	!defined(HW_VERSION_60) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A) && \
-	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) && !defined(HW_VERSION_RH) && \
-	!defined(HW_VERSION_TP) && !defined(HW_VERSION_75_300) && !defined(HW_VERSION_MINI4) && \
-	!defined(HW_VERSION_DAS_MINI)
-//#define HW_VERSION_40
-//#define HW_VERSION_45
-//#define HW_VERSION_46 // Also for 4.7
-//#define HW_VERSION_48
-//#define HW_VERSION_49
-//#define HW_VERSION_410 // Also for 4.11 and 4.12
-#define HW_VERSION_60
-//#define HW_VERSION_R2
-//#define HW_VERSION_VICTOR_R1A
-//#define HW_VERSION_DAS_RS
-//#define HW_VERSION_PALTA
-//#define HW_VERSION_RH
-//#define HW_VERSION_TP
-//#define HW_VERSION_75_300
-//#define HW_VERSION_MINI4
-//#define HW_VERSION_DAS_MINI
-#endif
+#define HW_VERSION_UNITY
+
 
 /*
  * Select default user motor configuration
@@ -125,6 +101,7 @@
 #ifndef SERVO_OUT_ENABLE
 #define SERVO_OUT_ENABLE			0		// Enable servo output
 #endif
+#define SERVO_OUT_SIMPLE			1		// Use simple HW-based driver (recommended)
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz
@@ -171,11 +148,10 @@ void conf_general_get_default_app_configuration(app_configuration *conf);
 void conf_general_get_default_mc_configuration(mc_configuration *conf);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
-void conf_general_read_mc_configuration(mc_configuration *conf);
-bool conf_general_store_mc_configuration(mc_configuration *conf);
+void conf_general_read_mc_configuration(mc_configuration *conf, mc_configuration *conf2);
+bool conf_general_store_mc_configuration(mc_configuration *conf, mc_configuration *conf2);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
-bool conf_general_measure_flux_linkage(float current, float duty,
-		float min_erpm, float res, float *linkage);
+bool conf_general_measure_flux_linkage(float *linkage, float *linkage2, bool *dir1, bool *dir2);
 
 #endif /* CONF_GENERAL_H_ */

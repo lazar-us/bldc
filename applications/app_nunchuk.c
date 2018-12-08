@@ -322,7 +322,7 @@ static THD_FUNCTION(output_thread, arg) {
 				}
 			}
 
-			mc_interface_set_pid_speed(pid_rpm);
+			mc_interface_set_pid_speed(pid_rpm,pid_rpm);
 
 			// Send the same current to the other controllers
 			if (config.multi_esc) {
@@ -427,7 +427,7 @@ static THD_FUNCTION(output_thread, arg) {
 		prev_current = current;
 
 		if (current < 0.0) {
-			mc_interface_set_brake_current(current);
+			mc_interface_set_brake_current(current,current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -477,9 +477,9 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 
 			if (is_reverse) {
-				mc_interface_set_current(-current_out);
+				mc_interface_set_current(-current_out,-current_out);
 			} else {
-				mc_interface_set_current(current_out);
+				mc_interface_set_current(current_out,current_out);
 			}
 		}
 	}

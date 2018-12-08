@@ -34,7 +34,7 @@
 #define APPCONF_SEND_CAN_STATUS				false
 #endif
 #ifndef APPCONF_SEND_CAN_STATUS_RATE_HZ
-#define APPCONF_SEND_CAN_STATUS_RATE_HZ		100
+#define APPCONF_SEND_CAN_STATUS_RATE_HZ		500
 #endif
 #ifndef APPCONF_CAN_BAUD_RATE
 #define APPCONF_CAN_BAUD_RATE				CAN_BAUD_500K
@@ -43,7 +43,7 @@
 // The default app is UART in case the UART port is used for
 // firmware updates.
 #ifndef APPCONF_APP_TO_USE
-#define APPCONF_APP_TO_USE					APP_UART
+#define APPCONF_APP_TO_USE					APP_PPM
 #endif
 
 // PPM app configureation
@@ -72,10 +72,10 @@
 #define APPCONF_PPM_SAFE_START				true
 #endif
 #ifndef APPCONF_PPM_THROTTLE_EXP
-#define APPCONF_PPM_THROTTLE_EXP			0.0
+#define APPCONF_PPM_THROTTLE_EXP			0.2
 #endif
 #ifndef APPCONF_PPM_THROTTLE_EXP_BRAKE
-#define APPCONF_PPM_THROTTLE_EXP_BRAKE		0.0
+#define APPCONF_PPM_THROTTLE_EXP_BRAKE		0.1
 #endif
 #ifndef APPCONF_PPM_THROTTLE_EXP_MODE
 #define APPCONF_PPM_THROTTLE_EXP_MODE		THR_EXP_POLY
@@ -234,6 +234,15 @@
 #endif
 #ifndef APPCONF_NRF_SEND_CRC_ACK
 #define APPCONF_NRF_SEND_CRC_ACK			true
+#endif
+#ifndef APPCONF_MSEC_PRESSED_FOR_OFF
+#define APPCONF_MSEC_PRESSED_FOR_OFF           1500
+#endif
+#ifndef APPCONF_PUSH_TO_START_ENABLED
+#define APPCONF_PUSH_TO_START_ENABLED            true
+#endif
+#ifndef APPCONF_SEC_INACTIVE_FOR_OFF
+#define APPCONF_SEC_INACTIVE_FOR_OFF            600
 #endif
 
 #endif /* APPCONF_DEFAULT_H_ */

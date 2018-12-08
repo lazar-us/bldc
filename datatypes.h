@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #ifndef DATATYPES_H_
 #define DATATYPES_H_
@@ -26,11 +26,25 @@
 
 // Data types
 typedef enum {
-   MC_STATE_OFF = 0,
-   MC_STATE_DETECTING,
-   MC_STATE_RUNNING,
-   MC_STATE_FULL_BRAKE,
+	MC_STATE_OFF = 0,
+	MC_STATE_DETECTING,
+	MC_STATE_RUNNING,
+	MC_STATE_FULL_BRAKE,
 } mc_state;
+
+typedef enum {
+	SELECT_MOSFET_TEMP_1 = 0,
+	SELECT_MOTOR_TEMP_1,
+	SELECT_MOSFET_TEMP_2,
+	SELECT_MOTOR_TEMP_2,
+} temp_indices;
+
+typedef struct {
+	float mosfet_temp_1;
+	float motor_temp_1;
+	float mosfet_temp_2;
+	float motor_temp_2;
+} temperature_values;
 
 typedef enum {
 	PWM_MODE_NONSYNCHRONOUS_HISW = 0, // This mode is not recommended
@@ -55,14 +69,6 @@ typedef enum {
 	FOC_SENSOR_MODE_HALL
 } mc_foc_sensor_mode;
 
-// Auxiliary output mode
-typedef enum {
-	OUT_AUX_MODE_OFF = 0,
-	OUT_AUX_MODE_ON_AFTER_2S,
-	OUT_AUX_MODE_ON_AFTER_5S,
-	OUT_AUX_MODE_ON_AFTER_10S
-} out_aux_mode;
-
 typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
@@ -76,7 +82,11 @@ typedef enum {
 	FAULT_CODE_DRV,
 	FAULT_CODE_ABS_OVER_CURRENT,
 	FAULT_CODE_OVER_TEMP_FET,
-	FAULT_CODE_OVER_TEMP_MOTOR
+	FAULT_CODE_OVER_TEMP_MOTOR,
+	FAULT_CODE_DRV2,
+	FAULT_CODE_ABS_OVER_CURRENT2,
+	FAULT_CODE_OVER_TEMP_FET2,
+	FAULT_CODE_OVER_TEMP_MOTOR2
 } mc_fault_code;
 
 typedef enum {
@@ -105,6 +115,12 @@ typedef enum {
 	SENSOR_PORT_MODE_ABI,
 	SENSOR_PORT_MODE_AS5047_SPI
 } sensor_port_mode;
+
+typedef enum {
+	BOTH_MOTORS = 0,
+	MOTOR_ONE,
+	MOTOR_TWO
+} motor_select;
 
 typedef struct {
 	float cycle_int_limit;
@@ -214,25 +230,23 @@ typedef struct {
 	float foc_sl_d_current_factor;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
+	bool foc_hall_port_swapped;
 	float foc_sl_erpm;
 	bool foc_sample_v0_v7;
 	bool foc_sample_high_current;
 	float foc_sat_comp;
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
-	float foc_current_filter_const;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
 	float s_pid_kd;
-	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
-	float p_pid_kd_filter;
 	float p_pid_ang_div;
 	// Current controller
 	float cc_startup_boost_duty;
@@ -252,7 +266,11 @@ typedef struct {
 	float m_bldc_f_sw_max;
 	float m_dc_f_sw;
 	float m_ntc_motor_beta;
-	out_aux_mode m_out_aux_mode;
+	bool m_motor_temp_throttle_enable;
+	float m_wheel_diameter;
+	float  m_gear_ratio;
+	float  m_motor_poles;
+
 } mc_configuration;
 
 // Applications to use
@@ -381,8 +399,7 @@ typedef enum {
 	NRF_POWER_M18DBM = 0,
 	NRF_POWER_M12DBM,
 	NRF_POWER_M6DBM,
-	NRF_POWER_0DBM,
-  NRF_POWER_OFF
+	NRF_POWER_0DBM
 } NRF_POWER;
 
 typedef enum {
@@ -428,6 +445,12 @@ typedef struct {
 } nrf_config;
 
 typedef struct {
+    bool push_to_start_enabled;
+    unsigned int msec_pressed_for_off;
+    unsigned int sec_inactive_for_off;
+} smart_switch_config;
+
+typedef struct {
 	// Settings
 	uint8_t controller_id;
 	uint32_t timeout_msec;
@@ -453,6 +476,8 @@ typedef struct {
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
+
+	smart_switch_config app_smart_switch_conf;
 } app_configuration;
 
 // Communication commands
@@ -494,7 +519,8 @@ typedef enum {
 	COMM_FORWARD_CAN,
 	COMM_SET_CHUCK_DATA,
 	COMM_CUSTOM_APP_DATA,
-	COMM_NRF_START_PAIRING
+	COMM_NRF_START_PAIRING,
+	COMM_GET_UNITY_VALUES
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -510,9 +536,7 @@ typedef enum {
 	CAN_PACKET_PROCESS_SHORT_BUFFER,
 	CAN_PACKET_STATUS,
 	CAN_PACKET_SET_CURRENT_REL,
-	CAN_PACKET_SET_CURRENT_BRAKE_REL,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL
+	CAN_PACKET_SET_CURRENT_BRAKE_REL
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -528,9 +552,16 @@ typedef struct {
 	int tim_val_samp;
 	int tim_current_samp;
 	int tim_top;
-	int comm_step;
 	float temperature;
 	int drv8301_faults;
+	float current2;
+	float current_filtered2;
+	float voltage2;
+	float duty2;
+	float rpm2;
+	int tacho2;
+	float temperature2;
+	int drv8301_faults2;
 } fault_data;
 
 // External LED state
@@ -589,20 +620,20 @@ typedef struct {
 	float temp_mos2;
 	float temp_mos3;
 	float temp_mos4;
-    float temp_mos5;
-    float temp_mos6;
-    float temp_pcb;
-    float current_motor;
-    float current_in;
-    float rpm;
-    float duty_now;
-    float amp_hours;
-    float amp_hours_charged;
-    float watt_hours;
-    float watt_hours_charged;
-    int tachometer;
-    int tachometer_abs;
-    mc_fault_code fault_code;
+	float temp_mos5;
+	float temp_mos6;
+	float temp_pcb;
+	float current_motor;
+	float current_in;
+	float rpm;
+	float duty_now;
+	float amp_hours;
+	float amp_hours_charged;
+	float watt_hours;
+	float watt_hours_charged;
+	int tachometer;
+	int tachometer_abs;
+	mc_fault_code fault_code;
 } mc_values;
 
 typedef enum {
