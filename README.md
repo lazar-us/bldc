@@ -1,1 +1,1 @@
-This is the source code for the FOCBOX Unity. This code is based on the Vesc Open Source Project. 
+This is the source code for the FOCBOX Unity. The FOCBOX unity is a dual brushless motor controller that offers independent control of two motors from a centralized MCU.  This code is based on the Vesc® Open Source Project:  http://vesc-project.com/ 

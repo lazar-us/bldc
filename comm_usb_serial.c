@@ -1,5 +1,6 @@
 // NOTE: this file is created from the USB_CDC testhal example
 
+
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
