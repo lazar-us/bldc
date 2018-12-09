@@ -47,7 +47,7 @@ This program is free software: you can redistribute it and/or modify
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
-#define EEPROM_BASE_APPCONF		3000
+#define EEPROM_BASE_APPCONF		3050
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];

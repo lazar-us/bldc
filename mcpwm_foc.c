@@ -1654,7 +1654,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 
   TIM12->CNT = 0;
-  UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
+  UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.05);
   temp_count++;
 
   if(temp_count>5){

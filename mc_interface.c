@@ -1840,7 +1840,7 @@ static void update_override_limits(volatile mc_configuration *conf, volatile mc_
   }
 
   float lo_motor_temp_accel = 0.0;
-  if (m_temp_motor < temp_motor_accel_start) {
+  if (m_temp_motor < temp_motor_accel_start || (!conf->m_motor_temp_throttle_enable)) {
     lo_motor_temp_accel = conf->l_current_max;
   }
   else if (m_temp_motor > temp_motor_accel_end) {
@@ -1862,7 +1862,7 @@ static void update_override_limits(volatile mc_configuration *conf, volatile mc_
   }
 
   float lo_motor_temp_accel2 = 0.0;
-  if (m_temp_motor2 < temp_motor_accel_start2) {
+  if (m_temp_motor2 < temp_motor_accel_start2 || (!conf2->m_motor_temp_throttle_enable)) {
     lo_motor_temp_accel2 = conf2->l_current_max;
   }
   else if (m_temp_motor2 > temp_motor_accel_end2) {
