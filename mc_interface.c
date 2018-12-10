@@ -253,12 +253,11 @@ void mc_interface_set_configuration(mc_configuration *configuration, mc_configur
     mcpwm_foc_init2(&m_conf2);
   }
   else {
-    mcpwm_foc_deinit();
-    mcpwm_foc_deinit2();
     m_conf = *configuration;
     m_conf2 = *configuration2;
-    mcpwm_foc_init(&m_conf);
-    mcpwm_foc_init2(&m_conf2);
+    mcpwm_foc_set_configuration(&m_conf);
+    mcpwm_foc_set_configuration2(&m_conf2);
+    mcpwm_foc_timer_reinit();
   }
   update_override_limits(&m_conf,&m_conf2);
   switch (m_conf.motor_type) {

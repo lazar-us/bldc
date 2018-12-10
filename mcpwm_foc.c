@@ -501,6 +501,159 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
   m_init_done = true;
 }
 
+void mcpwm_foc_timer_reinit(void){
+  WWDG_DeInit();
+  utils_sys_lock_cnt();
+  TIM_DeInit(TIM1);
+  TIM_DeInit(TIM8);
+  TIM_DeInit(TIM5);
+  TIM_DeInit(TIM2);
+
+  TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+  TIM_OCInitTypeDef TIM_OCInitStructure;
+  TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
+
+
+  // Time base configuration
+  TIM_TimeBaseStructure.TIM_Period = (SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw)/4;
+  TIM_TimeBaseStructure.TIM_Prescaler = 0;
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
+  TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+  TIM_ARRPreloadConfig(TIM2, ENABLE);
+
+  // TIM1 clock enable
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
+  // Time Base configuration
+  TIM_TimeBaseStructure.TIM_Prescaler = 0;
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
+  TIM_TimeBaseStructure.TIM_Period = ((SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw)/4)*4;
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+  TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+
+  TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+  TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
+  // Channel 1, 2 and 3 Configuration in PWM mode
+  TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+  TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+  TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
+  TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+  TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+  TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+  TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+  TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
+
+  TIM_OC1Init(TIM1, &TIM_OCInitStructure);
+  TIM_OC2Init(TIM1, &TIM_OCInitStructure);
+  TIM_OC3Init(TIM1, &TIM_OCInitStructure);
+  TIM_OC4Init(TIM1, &TIM_OCInitStructure);
+
+  TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
+  TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+
+  TIM_OC1Init(TIM8, &TIM_OCInitStructure);
+  TIM_OC2Init(TIM8, &TIM_OCInitStructure);
+  TIM_OC3Init(TIM8, &TIM_OCInitStructure);
+  TIM_OC4Init(TIM8, &TIM_OCInitStructure);
+
+  TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
+  TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+  TIM_OC3PreloadConfig(TIM8, TIM_OCPreload_Enable);
+  TIM_OC4PreloadConfig(TIM8, TIM_OCPreload_Enable);
+
+  // Automatic Output enable, Break, dead time and lock configuration
+  TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
+  TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
+  TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
+  TIM_BDTRInitStructure.TIM_DeadTime = HW_DEAD_TIME_VALUE;
+  TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
+  TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
+  TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
+
+  TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
+  TIM_CCPreloadControl(TIM1, ENABLE);
+  TIM_ARRPreloadConfig(TIM1, ENABLE);
+
+  TIM_BDTRConfig(TIM8, &TIM_BDTRInitStructure);
+  TIM_CCPreloadControl(TIM8, ENABLE);
+  TIM_ARRPreloadConfig(TIM8, ENABLE);
+
+  // ------------- Timer8 for ADC sampling ------------- //
+  // Time Base configuration
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);
+
+  TIM_TimeBaseStructure.TIM_Prescaler = 0;
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+  TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+  TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+  TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
+
+  TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+  TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+  TIM_OCInitStructure.TIM_Pulse = 250;
+  TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+  TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+  TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+  TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
+  TIM_OC1Init(TIM5, &TIM_OCInitStructure);
+  TIM_OC1PreloadConfig(TIM5, TIM_OCPreload_Enable);
+  TIM_OC2Init(TIM5, &TIM_OCInitStructure);
+  TIM_OC2PreloadConfig(TIM5, TIM_OCPreload_Enable);
+  TIM_OC3Init(TIM5, &TIM_OCInitStructure);
+  TIM_OC3PreloadConfig(TIM5, TIM_OCPreload_Enable);
+
+  TIM_ARRPreloadConfig(TIM5, ENABLE);
+  TIM_CCPreloadControl(TIM5, ENABLE);
+
+  // PWM outputs have to be enabled in order to trigger ADC on CCx
+  TIM_CtrlPWMOutputs(TIM5, ENABLE);
+
+  // TIM1 Master and TIM5 slave TIM_TRGOSource_Enable
+  //TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);
+  TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
+  TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
+  TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
+  TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Trigger);
+  //TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_Enable);
+  TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_Update);
+  TIM_SelectInputTrigger(TIM5, TIM_TS_ITR0);
+  TIM_SelectSlaveMode(TIM5, TIM_SlaveMode_Reset);
+
+  TIM_SelectInputTrigger(TIM2, TIM_TS_ITR0);
+  TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_Update);
+  //TIM_SelectMasterSlaveMode(TIM2, TIM_MasterSlaveMode_Enable);
+  TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Trigger);
+
+  // Enable TIM1 and TIM5
+  TIM8->CNT = TIM1->ARR/2;
+  TIM1->CNT = 0;
+  TIM5->CNT = 0;
+  TIM2->CNT = 0;
+  TIM_Cmd(TIM1, ENABLE);
+  TIM_Cmd(TIM5, ENABLE);
+  // Main Output Enable
+  TIM_CtrlPWMOutputs(TIM1, ENABLE);
+  TIM_CtrlPWMOutputs(TIM8, ENABLE);
+  utils_sys_unlock_cnt();
+  TIM_Cmd(TIM1, ENABLE);
+  TIM_Cmd(TIM5, ENABLE);
+  // Main Output Enable
+  TIM_CtrlPWMOutputs(TIM1, ENABLE);
+  TIM_CtrlPWMOutputs(TIM8, ENABLE);
+
+  TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
+
+  // Enable CC1 interrupt, which will be fired in V0 and V7
+  TIM_ITConfig(TIM5, TIM_IT_CC2, ENABLE);
+
+  nvicEnableVector(TIM5_IRQn, 6);
+  WWDG_Enable(100);
+}
+
 void mcpwm_foc_deinit(void) {
   m_init_done = false;
 
@@ -513,6 +666,7 @@ void mcpwm_foc_deinit(void) {
   }
 
   TIM_DeInit(TIM1);
+  TIM_DeInit(TIM2);
   TIM_DeInit(TIM5);
   TIM_DeInit(TIM8);
   TIM_DeInit(TIM12);
@@ -1392,11 +1546,12 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *res2, float *ind2)
   m_conf->foc_current_kp = kp_old;
   m_conf->foc_current_ki = ki_old;
 
-  mcpwm_foc_deinit();
-  mcpwm_foc_init(m_conf);
+  //mcpwm_foc_deinit();
+  //mcpwm_foc_init(m_conf);
+  mcpwm_foc_timer_reinit();
 
- // top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
- // TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+  // top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+  // TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
   return true;
 }
 
@@ -1742,7 +1897,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
       if (inductance_state == 0) {
         TIMER_UPDATE_DUTY_2(0, 0, 0)
 
-		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
+		                TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
         TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
         TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
 

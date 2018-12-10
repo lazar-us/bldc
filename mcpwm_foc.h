@@ -24,6 +24,7 @@
 
 // Functions
 void mcpwm_foc_init(volatile mc_configuration *configuration);
+void mcpwm_foc_timer_reinit(void);
 void mcpwm_foc_deinit(void);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration);
