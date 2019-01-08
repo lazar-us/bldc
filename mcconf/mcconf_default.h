@@ -90,10 +90,10 @@
 #define MCCONF_L_LIM_TEMP_FET_END		110.0	// MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_START
-#define MCCONF_L_LIM_TEMP_MOTOR_START	85.0	// MOTOR temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_MOTOR_START	70.0	// MOTOR temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_END
-#define MCCONF_L_LIM_TEMP_MOTOR_END		140.0	// MOTOR temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_MOTOR_END		155.0	// MOTOR temperature where everything should be shut off
 #endif
 #ifndef MCCONF_L_LIM_TEMP_ACCEL_DEC
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
@@ -347,7 +347,7 @@
 #define MCCONF_M_DC_F_SW				20000 // Switching frequency in dc mode
 #endif
 #ifndef MCCONF_M_NTC_MOTOR_BETA
-#define MCCONF_M_NTC_MOTOR_BETA			3380.0 // Beta value for motor termistor
+#define MCCONF_M_NTC_MOTOR_BETA			3900.0 // Beta value for motor termistor
 #endif
 #ifndef MCCONF_M_MOTOR_TEMP_THROTTLE_ENABLE
 #define MCCONF_M_MOTOR_TEMP_THROTTLE_ENABLE true

@@ -1808,7 +1808,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
    */
 
 
-  TIM12->CNT = 0;
+
   UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.05);
   temp_count++;
 
@@ -1897,7 +1897,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
       if (inductance_state == 0) {
         TIMER_UPDATE_DUTY_2(0, 0, 0)
 
-		                TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
+		                                            TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
         TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
         TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
 
@@ -2032,12 +2032,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
     float duty_set = m_duty_cycle_set;
     bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
 
-    // When the filtered duty cycle in sensorless mode becomes low in brake mode, the
-    // observer has lost tracking. Use duty cycle control with the lowest duty cycle
-    // to get as smooth braking as possible.
     if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-        //				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
-        && fabsf(duty_filtered) < 0.03) {
+        //              && (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
+        && fabsf(duty_filtered)*GET_INPUT_VOLTAGE() < 0.5
+        && (fmax( m_iq_set , 0.5/m_conf->foc_motor_r ) >  (double) fabsf(m_motor_state.iq_filter))) {
       control_duty = true;
       duty_set = 0.0;
     }
@@ -2097,10 +2095,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
       }
     }
 
+
     // Run observer
+
     if (!m_phase_override) {
+      // This function takes 0.0050 ms to run (20%)
       observer_update(m_motor_state.v_alpha, m_motor_state.v_beta, m_motor_state.i_alpha, m_motor_state.i_beta, dt, &m_observer_x1, &m_observer_x2, &m_phase_now_observer);
     }
+
 
     switch (m_conf->foc_sensor_mode) {
     case FOC_SENSOR_MODE_ENCODER:
@@ -2117,6 +2119,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
       }
       break;
     case FOC_SENSOR_MODE_HALL:
+      // This function takes 0.0005 ms or 2%
       m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
       m_motor_state.phase = m_phase_now_observer;
 
@@ -2183,8 +2186,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
     m_motor_state.id_target = id_set_tmp;
     m_motor_state.iq_target = iq_set_tmp;
-
+    TIM12->CNT = 0;
+    // this function takes about 0.0059 sconds to run or about 25%%
     control_current(&m_motor_state, dt);
+    last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
   }
   else {
     // Track back emf
@@ -2302,9 +2307,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
   }
 
   // MCIF handler
+
+
+  // this function takes ~0.058 ms to run currently (25%)
   mc_interface_mc_timer_isr();
 
-  last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+  //last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
 }
 
 // Private functions

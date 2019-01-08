@@ -138,7 +138,7 @@ void bt_uartcomm_start(void) {
 
     if (!is_running) {
         chThdCreateStatic(packet_process_thread2_wa, sizeof(packet_process_thread2_wa),
-                NORMALPRIO, packet_process_thread2, NULL);
+                HIGHPRIO, packet_process_thread2, NULL);
         is_running = true;
     }
 
