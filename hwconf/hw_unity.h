@@ -31,13 +31,22 @@
 #define SWITCH_LED_2_PIN        11
 
 //Pins for BLE UART
-
+//#define USE_ALT_UART_PORT
+#ifdef USE_ALT_UART_PORT
+#define BT_UART_DEV             UARTD2
+#define BT_UART_GPIO_AF         GPIO_AF_USART2
+#define BT_UART_TX_PORT         GPIOD
+#define BT_UART_TX_PIN          5
+#define BT_UART_RX_PORT         GPIOD
+#define BT_UART_RX_PIN          6
+#else
 #define BT_UART_DEV             UARTD1
 #define BT_UART_GPIO_AF         GPIO_AF_USART1
 #define BT_UART_TX_PORT         GPIOA
 #define BT_UART_TX_PIN          9
 #define BT_UART_RX_PORT         GPIOA
 #define BT_UART_RX_PIN          10
+#endif
 
 // SPI for DRV8301
 #define HW_HAS_DRV8301

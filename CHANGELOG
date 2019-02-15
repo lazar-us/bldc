@@ -1,27 +1,31 @@
-=== FW 3.41 ===
+=== FW 23.42 ===
+* Adjusted default motor thermal settings to improve performance of raptor 2.1
+* Sight alteration to low-speed brakng algorithm for smoother braking. May notice a subtle chatter sound at low speed braking which is normal and safe. 
+
+=== FW 23.41 ===
 * Phase shifted each motor to alternate peak loading
 * Improved voltage line filtering 
 * Created proper repository finally (versioning will now be more clear)
 
-=== FW 3.40 ===
+=== FW 23.40 ===
 * Added some digital filtering to power switch input
 
-=== FW 3.39 ===
+=== FW 23.39 ===
 * Added changes to support smart switch, more config settings in app settings
 
-=== FW 3.38 ===
+=== FW 23.38 ===
 * Improved FOC code for legibility 
 
-=== FW 3.37 ===
+=== FW 23.37 ===
 * Added more settings to motor temperature config
 
-=== FW 3.36 ===
+=== FW 23.36 ===
 * Modified mc interface to improve dual motor support
 
-=== FW 3.35 ===
+=== FW 23.35 ===
 * Got BLDC baseline working, not good enough yet. FOC remains superior
 
-=== FW 3.34 ===
+=== FW 23.34 ===
 * Forked from BLDC repository added support for two motors
 
 === FW 3.33 ===

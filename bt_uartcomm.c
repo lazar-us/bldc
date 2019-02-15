@@ -25,7 +25,11 @@
 #include <string.h>
 
 // Settings
+#ifdef USE_ALT_UART_PORT
+#define BAUDRATE                    115200
+#else
 #define BAUDRATE                    250000
+#endif
 #define PACKET_HANDLER              2
 #define SERIAL_RX_BUFFER_SIZE       2048
 

@@ -2035,7 +2035,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
     if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
         //              && (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
         && fabsf(duty_filtered)*GET_INPUT_VOLTAGE() < 0.5
-        && (fmax( m_iq_set , 0.5/m_conf->foc_motor_r ) >  (double) fabsf(m_motor_state.iq_filter))) {
+        && (fmaxf( fabsf(m_iq_set) , 0.5/(m_conf->foc_motor_r*2/3) ) > fabsf(m_motor_state.iq_filter))) {
       control_duty = true;
       duty_set = 0.0;
     }

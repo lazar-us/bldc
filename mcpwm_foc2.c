@@ -1480,7 +1480,7 @@ void mcpwm_foc_handler2(void) {
     // observer has lost tracking. Use duty cycle control with the lowest duty cycle
     if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
         && fabsf(duty_filtered)*GET_INPUT_VOLTAGE() < 0.5
-        && (fmax( m_iq_set , 0.5/m_conf->foc_motor_r ) >  (double) fabsf(m_motor_state.iq_filter))) {
+        && (fmax( fabsf(m_iq_set) , 0.5/(m_conf->foc_motor_r*2/3) ) >  (double) fabsf(m_motor_state.iq_filter))) {
       control_duty = true;
       duty_set = 0.0;
     }
@@ -1727,9 +1727,9 @@ void mcpwm_foc_handler2(void) {
 
   // Calculate duty cycle
   m_motor_state.duty_now = SIGN(m_motor_state.vq)
-			                    * sqrtf(m_motor_state.mod_d * m_motor_state.mod_d
-			                            + m_motor_state.mod_q
-			                            * m_motor_state.mod_q) / SQRT3_BY_2;
+			                        * sqrtf(m_motor_state.mod_d * m_motor_state.mod_d
+			                                + m_motor_state.mod_q
+			                                * m_motor_state.mod_q) / SQRT3_BY_2;
 
   // Run PLL for speed estimation
   pll_run(m_motor_state.phase, dt, &m_pll_phase, &m_pll_speed);
@@ -1907,7 +1907,7 @@ static void observer_update(float v_alpha, float v_beta, float i_alpha,
       * (m_motor_state.i_abs_filter / m_conf->l_current_max);
 
   // Temperature compensation
-  const float t = mc_interface_temp_motor_filtered();
+  const float t = mc_interface_temp_motor_filtered2();
   if (m_conf->foc_temp_comp && t > -5.0) {
     R += R * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
   }
@@ -2063,7 +2063,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
   const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
   const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
   const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter)
-			                    - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
+			                        - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
   const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter)
   - ONE_BY_SQRT3 * SIGN(ic_filter);
   const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
@@ -2072,9 +2072,9 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
   // Apply compensation here so that 0 duty cycle has no glitches.
   state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0)
-			                    * state_m->v_bus;
+			                        * state_m->v_bus;
   state_m->v_beta = (mod_beta - mod_beta_comp) * (2.0 / 3.0)
-			                    * state_m->v_bus;
+			                        * state_m->v_bus;
 
   // Set output (HW Dependent)
   uint32_t duty1, duty2, duty3, top;
@@ -2453,7 +2453,7 @@ static float correct_hall(float angle, float speed, float dt) {
     if (ang_hall_int < 201) {
       static float ang_hall = 0.0;
       float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0)
-					                    * M_PI / 180.0;
+					                        * M_PI / 180.0;
 
       if (ang_hall_int_prev < 0) {
         // Previous angle not valid
