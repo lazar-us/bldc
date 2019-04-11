@@ -53,6 +53,7 @@ float mc_interface_get_rpm2(void);
 float mc_interface_get_amp_hours(bool reset);
 float mc_interface_get_amp_hours_charged(bool reset);
 float mc_interface_get_watt_hours(bool reset);
+float mc_interface_get_capacity(void);
 float mc_interface_get_watt_hours_charged(bool reset);
 float mc_interface_get_tot_current(void);
 float mc_interface_get_tot_current2(void);

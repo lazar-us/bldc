@@ -213,7 +213,7 @@ int main(void) {
                     timer_thread, NULL);
 
   for (;;) {
-    chThdSleepMilliseconds(10);
+    chThdSleepMilliseconds(100);
 
     if (encoder_is_configured()) {
 

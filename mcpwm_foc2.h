@@ -29,6 +29,7 @@ bool mcpwm_foc_init_done2(void);
 void mcpwm_foc_set_configuration2(volatile mc_configuration *configuration);
 mc_state mcpwm_foc_get_state2(void);
 void mcpwm_foc_start_resistance2(float current);
+void mcpwm_foc_start_inductance2(void);
 void mcpwm_foc_stop_resistance2(void);
 bool mcpwm_foc_is_dccal_done2(void);
 void mcpwm_foc_stop_pwm2(void);

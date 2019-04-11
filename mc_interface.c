@@ -74,6 +74,7 @@ static volatile float m_temp_fet2;
 static volatile float m_temp_motor;
 static volatile float m_temp_motor2;
 static volatile float v_in_last = 12.0;
+static volatile float capacity_estimate = -1.0;
 static volatile long unsigned int msec_inactive = 0;
 
 // Sampling variables
@@ -765,6 +766,12 @@ float mc_interface_get_watt_hours(bool reset) {
   return val;
 }
 
+float mc_interface_get_capacity(void) {
+  return capacity_estimate;
+}
+
+
+
 /**
  * Get the amount of watt hours fed back into the input source.
  *
@@ -1443,7 +1450,7 @@ void mc_interface_mc_timer_isr(void) {
     static float curr_diff_sum = 0.0;
     static float curr_diff_samples = 0;
 
-    curr_diff_sum += current_in / f_samp;
+    curr_diff_sum += current_in  / f_samp;
     curr_diff_samples += 1.0 / f_samp;
 
     if (curr_diff_samples >= 0.01) {
@@ -2031,6 +2038,19 @@ static THD_FUNCTION(timer_thread, arg) {
   chRegSetThreadName("mcif timer");
   for (;;) {
     // Decrease fault iterations
+    if(chVTGetSystemTime() > MS2ST(5000)){
+      float batt_resistance = 0.13;
+      float normalized_voltage = mc_interface_get_voltage();
+      normalized_voltage += batt_resistance*mc_interface_get_tot_current_in();
+      normalized_voltage = ((normalized_voltage/(m_conf.l_battery_cut_end/3.1)) - 3.1)/1.1;
+      if(capacity_estimate < 0){
+        capacity_estimate = utils_batt_norm_v_to_capacity(normalized_voltage);
+      }else
+      {
+        UTILS_LP_FAST(capacity_estimate,utils_batt_norm_v_to_capacity(normalized_voltage),0.001);
+      }
+    }
+
     if (m_ignore_iterations > 0) {
       m_ignore_iterations--;
     }

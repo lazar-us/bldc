@@ -1431,7 +1431,7 @@ void mcpwm_foc_measure_resistance(float current, int samples, float *res, float 
  * @return
  * The average d and q axis inductance in microhenry.
  */
-void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *l1, float *l2) {
+void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *curr2, float *l1, float *l2) {
   m_samples.avg_current_tot = 0.0;
   m_samples.avg_voltage_tot = 0.0;
   m_samples.avg_current_tot2 = 0.0;
@@ -1479,6 +1479,9 @@ void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *l
   if (curr) {
     *curr = avg_current;
   }
+  if (curr2) {
+      *curr2 = avg_current2;
+    }
 
   *l1 = ((avg_voltage * t) / avg_current) * 1e6 * (2.0 / 3.0);
   *l2 = ((avg_voltage2 * t) / avg_current2) * 1e6 * (2.0 / 3.0);
@@ -1502,46 +1505,48 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *res2, float *ind2)
   const float ki_old = m_conf->foc_current_ki;
 
   m_conf->foc_f_sw = 10000.0;
-  m_conf->foc_current_kp = 0.01;
-  m_conf->foc_current_ki = 10.0;
+  m_conf->foc_current_kp = 0.001;
+  m_conf->foc_current_ki = 1.0;
+  mcpwm_foc_timer_reinit();
 
   uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
   TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
-  /*float res_tmp = 0.0;
-	 float i_last = 0.0;
-	 float res_tmp2 = 0.0;
-	 float i_last2 = 0.0;
-	 for (float i = 2.0; i < (m_conf->l_current_max / 2.0); i *= 1.5) {
-	 mcpwm_foc_measure_resistance(i, 20, &res_tmp, &res_tmp2);
+  float res_tmp = 0.0;
+  float i_last = 0.0;
+  float res_tmp2 = 0.0;
+  for (float i = 5.0; i < (m_conf->l_current_max / 2.0); i *= 1.5) {
+    mcpwm_foc_measure_resistance(i, 10, &res_tmp, &res_tmp2);
 
-	 if (i > 0.5 * ((1.0 / res_tmp) + (1.0 / res_tmp2))) {
-	 i_last = i;
-	 break;
-	 }
-	 }
+    if ((i > (1.0 / res_tmp) && res_tmp < 3.0) || (i > (1.0 / res_tmp2) && res_tmp2 < 3.0)) {
+      i_last = i;
+      break;
+    }
+  }
 
-	 if (i_last < 0.01) {
-	 i_last = (m_conf->l_current_max / 2.0);
-	 }*/
-  mcpwm_foc_measure_resistance(10.0, 30, res, res2);
+  if (i_last < 0.01) {
+    i_last = (m_conf->l_current_max / 2.0);
+  }
+  mcpwm_foc_measure_resistance(i_last, 30, res, res2);
 
-  m_conf->foc_f_sw = 10000.0;
+  m_conf->foc_f_sw = 3000.0;
   top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
   TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-  /*
-	 float duty_last = 0.0;
-	 float l1_tmp, l2_tmp;
-	 for (float i = 0.02; i < 0.5; i *= 1.5) {
-	 float i_tmp;
-	 mcpwm_foc_measure_inductance(i, 20, &i_tmp,&l1_tmp,&l2_tmp);
-	 duty_last = i;
-	 if (i_tmp >= i_last) {
-	 break;
-	 }
-	 }*/
+  mcpwm_foc_start_inductance2();
+  mcpwm_foc_timer_reinit();
 
-  mcpwm_foc_measure_inductance(3.0 / GET_INPUT_VOLTAGE(), 50, 0, ind, ind2);
+  float duty_last = 0.0;
+  float l1_tmp, l2_tmp;
+  for (float i = 0.04; i < 0.5; i *= 1.5) {
+    float i_tmp, i_tmp2;
+    mcpwm_foc_measure_inductance(i, 10, &i_tmp, &i_tmp2, &l1_tmp, &l2_tmp);
+    duty_last = i;
+    if ((i_tmp > i_last)||(i_tmp2 > i_last)) {
+      break;
+    }
+  }
+
+  mcpwm_foc_measure_inductance(duty_last, 50, 0, 0,ind, ind2);
   m_conf->foc_f_sw = f_sw_old;
   m_conf->foc_current_kp = kp_old;
   m_conf->foc_current_ki = ki_old;
@@ -1897,7 +1902,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
       if (inductance_state == 0) {
         TIMER_UPDATE_DUTY_2(0, 0, 0)
 
-		                                            TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
+		                                                    TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
         TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
         TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
 

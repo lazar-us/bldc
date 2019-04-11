@@ -24,5 +24,6 @@
 void bt_uartcomm_start(void);
 void bt_uartcomm_stop(void);
 void bt_uartcomm_configure(uint32_t baudrate);
+void bt_uartcomm_send_packet(unsigned char *data, unsigned int len);
 
 #endif /* BT_UARTCOMM_H_ */

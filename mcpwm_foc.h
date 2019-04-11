@@ -68,7 +68,7 @@ float mcpwm_foc_get_vq(void);
 bool mcpwm_foc_one_turn_openloop(float current, bool dir);
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
 void mcpwm_foc_measure_resistance(float current, int samples,float *res,float *res2);
-void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *l1, float *l2);
+void mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *curr2, float *l1, float *l2);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *res2, float *ind2);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);

@@ -13,16 +13,20 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
 #include "ledpwm.h"
 #include "mc_interface.h"
+#include "comm_can.h"
+#include "utils.h"
+
 static unsigned int millis_switch_pressed = 0;
 static volatile smart_switch_config config;
 static THD_WORKING_AREA(smart_switch_thread_wa, 128);
+#define MAX_CAN_AGE                     0.1
 
 typedef enum {
   UNITY_BOOTED = 0,
@@ -54,6 +58,7 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
+  switch_state = SHUTTING_DOWN;
   palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
   return;
 }
@@ -109,6 +114,13 @@ static THD_FUNCTION(smart_switch_thread, arg) {
       break;
     case SHUTTING_DOWN:
       ledpwm_set_intensity(SWITCH_LED_1,0);
+      for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+        can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+        //if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+          comm_can_set_shutdown(msg->id);
+        //}
+      }
       smart_switch_shut_down();
       break;
     default:

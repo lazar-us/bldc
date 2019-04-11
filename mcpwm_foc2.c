@@ -947,8 +947,8 @@ void mcpwm_foc_start_resistance2(float current) {
   old_kp = m_conf->foc_current_kp;
   old_ki = m_conf->foc_current_ki;
   m_conf->foc_f_sw = 10000.0;
-  m_conf->foc_current_kp = 0.01;
-  m_conf->foc_current_ki = 10.0;
+  m_conf->foc_current_kp = 0.001;
+  m_conf->foc_current_ki = 1.0;
 
 
   m_phase_override = true;
@@ -957,6 +957,12 @@ void mcpwm_foc_start_resistance2(float current) {
   m_iq_set = current;
   m_control_mode = CONTROL_MODE_CURRENT;
   m_state = MC_STATE_RUNNING;
+}
+
+void mcpwm_foc_start_inductance2() {
+  m_conf->foc_f_sw = 3000.0;
+  uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+  TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 }
 
 void mcpwm_foc_stop_resistance2(void) {
@@ -1727,9 +1733,9 @@ void mcpwm_foc_handler2(void) {
 
   // Calculate duty cycle
   m_motor_state.duty_now = SIGN(m_motor_state.vq)
-			                        * sqrtf(m_motor_state.mod_d * m_motor_state.mod_d
-			                                + m_motor_state.mod_q
-			                                * m_motor_state.mod_q) / SQRT3_BY_2;
+			                            * sqrtf(m_motor_state.mod_d * m_motor_state.mod_d
+			                                    + m_motor_state.mod_q
+			                                    * m_motor_state.mod_q) / SQRT3_BY_2;
 
   // Run PLL for speed estimation
   pll_run(m_motor_state.phase, dt, &m_pll_phase, &m_pll_speed);
@@ -2063,7 +2069,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
   const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
   const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
   const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter)
-			                        - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
+			                            - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
   const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter)
   - ONE_BY_SQRT3 * SIGN(ic_filter);
   const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
@@ -2072,9 +2078,9 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
   // Apply compensation here so that 0 duty cycle has no glitches.
   state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0)
-			                        * state_m->v_bus;
+			                            * state_m->v_bus;
   state_m->v_beta = (mod_beta - mod_beta_comp) * (2.0 / 3.0)
-			                        * state_m->v_bus;
+			                            * state_m->v_bus;
 
   // Set output (HW Dependent)
   uint32_t duty1, duty2, duty3, top;
@@ -2453,7 +2459,7 @@ static float correct_hall(float angle, float speed, float dt) {
     if (ang_hall_int < 201) {
       static float ang_hall = 0.0;
       float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0)
-					                        * M_PI / 180.0;
+					                            * M_PI / 180.0;
 
       if (ang_hall_int_prev < 0) {
         // Previous angle not valid

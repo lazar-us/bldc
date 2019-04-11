@@ -251,9 +251,9 @@ static THD_FUNCTION(rx_thread, arg) {
 						// Wait a bit in case retries are still made
 						chThdSleepMilliseconds(2);
 
-						commands_set_send_func(nrf_driver_send_buffer);
+						//commands_set_send_func(nrf_driver_send_buffer);
 						from_nrf = true;
-						commands_process_packet(rx_buffer, rxbuf_len);
+						commands_process_packet(rx_buffer, rxbuf_len, nrf_driver_send_buffer);
 						from_nrf = false;
 					}
 				}
@@ -263,9 +263,9 @@ static THD_FUNCTION(rx_thread, arg) {
 					// Wait a bit in case retries are still made
 					chThdSleepMilliseconds(2);
 
-					commands_set_send_func(nrf_driver_send_buffer);
+					//commands_set_send_func(nrf_driver_send_buffer);
 					from_nrf = true;
-					commands_process_packet(buf + 1, len - 1);
+					commands_process_packet(buf + 1, len - 1,nrf_driver_send_buffer);
 					from_nrf = false;
 					break;
 

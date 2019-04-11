@@ -33,14 +33,14 @@
 //Pins for BLE UART
 //#define USE_ALT_UART_PORT
 #ifdef USE_ALT_UART_PORT
-#define BT_UART_DEV             UARTD2
+#define BT_UART_DEV             SD2
 #define BT_UART_GPIO_AF         GPIO_AF_USART2
 #define BT_UART_TX_PORT         GPIOD
 #define BT_UART_TX_PIN          5
 #define BT_UART_RX_PORT         GPIOD
 #define BT_UART_RX_PIN          6
 #else
-#define BT_UART_DEV             UARTD1
+#define BT_UART_DEV             SD1
 #define BT_UART_GPIO_AF         GPIO_AF_USART1
 #define BT_UART_TX_PORT         GPIOA
 #define BT_UART_TX_PIN          9
@@ -180,7 +180,7 @@
 #define HW_SERVO_NUM            2
 
 // UART Peripheral
-#define HW_UART_DEV             UARTD3
+#define HW_UART_DEV             SD3
 #define HW_UART_GPIO_AF         GPIO_AF_USART3
 #define HW_UART_TX_PORT         GPIOB
 #define HW_UART_TX_PIN          10

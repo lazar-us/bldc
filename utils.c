@@ -43,6 +43,16 @@ float utils_calc_ratio(float low, float high, float val) {
 	return (val - low) / (high - low);
 }
 
+float utils_batt_norm_v_to_capacity(float norm_v) {
+  utils_truncate_number(&norm_v,0.0,1.0);
+  float v2 = norm_v*norm_v;
+  float v3 = v2*norm_v;
+  float v4 = v3*norm_v;
+  float v5 = v4*norm_v;
+  float capacity = -4.1496 * v5 + 7.9191 * v4 - 4.9199 * v3 + 1.8461 * v2 + 0.3055 * norm_v;
+  return capacity;
+}
+
 /**
  * Make sure that 0 <= angle < 360
  *
