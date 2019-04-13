@@ -111,6 +111,7 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_reset_seconds_inactive();
 	utils_sys_lock_cnt();
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 

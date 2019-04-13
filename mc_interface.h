@@ -87,7 +87,8 @@ float mc_interface_temp_motor_filtered2(void);
 void mc_interface_measure_flux_linkage_start(void);
 bool mc_interface_flux_linkage_measurements_done(void);
 void mc_interface_measure_flux_linkage_finish(float *linkage1, float *linkage2, bool *completed1, bool *completed2, bool *dir1, bool *dir2);
-unsigned int mc_interface_seconds_inactive(void);
+unsigned int mc_interface_get_seconds_inactive(void);
+void mc_interface_reset_seconds_inactive(void);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);

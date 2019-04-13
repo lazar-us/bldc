@@ -1244,8 +1244,12 @@ float mc_interface_temp_motor_filtered2(void) {
   return m_temp_motor2;
 }
 
-unsigned int mc_interface_seconds_inactive(void) {
+unsigned int mc_interface_get_seconds_inactive(void) {
   return msec_inactive/1000;
+}
+
+void mc_interface_reset_seconds_inactive(void) {
+  msec_inactive = 0;
 }
 
 // MC implementation functions

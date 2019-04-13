@@ -108,7 +108,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
         millis_switch_pressed = 0;
         ledpwm_set_intensity(SWITCH_LED_1,0.4);
       }
-      if(((millis_switch_pressed > config.msec_pressed_for_off) || (mc_interface_seconds_inactive() > config.sec_inactive_for_off)) && (config.sec_inactive_for_off > 0)){
+      if(((millis_switch_pressed > config.msec_pressed_for_off) || (mc_interface_get_seconds_inactive() > config.sec_inactive_for_off)) && (config.sec_inactive_for_off > 0)){
         switch_state = SHUTTING_DOWN;
       }
       break;
