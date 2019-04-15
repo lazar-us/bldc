@@ -1,6 +1,9 @@
 === FW 23.43 ===
 * Reverted change to R/L detection to fix some bad motor ID problems
 * Added updates to serial driver and packet format
+* Added shutdown over CAN for multiple unities
+* Added activity refresh when flashing FW to prevent auto-shutoff
+
 
 === FW 23.42 ===
 * Adjusted default motor thermal settings to improve performance of raptor 2.1

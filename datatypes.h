@@ -591,6 +591,7 @@ typedef struct {
 	float rpm;
 	float current;
 	float duty;
+	float rpm2;
 } can_status_msg;
 
 typedef struct {

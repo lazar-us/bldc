@@ -166,7 +166,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
         CAN_PACKET_ID cmd = rxmsg.EID >> 8;
         can_status_msg *stat_tmp;
         float cmd1 = 0;
-        // float cmd2 = 0;
+        float cmd2 = 0;
         if (id == 255 || id == app_get_configuration()->controller_id) {
           switch (cmd) {
           case CAN_PACKET_SET_DUTY:
@@ -179,7 +179,8 @@ static THD_FUNCTION(cancom_process_thread, arg) {
           case CAN_PACKET_SET_CURRENT:
             ind = 0;
             cmd1 = (float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0;
-            mc_interface_set_current(cmd1,cmd1);
+            cmd2 = (float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0;
+            mc_interface_set_current(cmd1,cmd2);
             timeout_reset();
             break;
 
@@ -284,9 +285,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
               ind = 0;
               stat_tmp->id = id;
               stat_tmp->rx_time = chVTGetSystemTime();
-              stat_tmp->rpm = (float)buffer_get_int32(rxmsg.data8, &ind);
+              stat_tmp->rpm = (float)buffer_get_int16(rxmsg.data8, &ind)*10.0;
               stat_tmp->current = (float)buffer_get_int16(rxmsg.data8, &ind) / 10.0;
               stat_tmp->duty = (float)buffer_get_int16(rxmsg.data8, &ind) / 1000.0;
+              stat_tmp->rpm2 = (float)buffer_get_int16(rxmsg.data8, &ind)*10.0;
               break;
             }
           }
@@ -317,9 +319,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
       // Send status message
       int32_t send_index = 0;
       uint8_t buffer[8];
-      buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
+      buffer_append_int16(buffer, (int16_t)(mc_interface_get_rpm()/10.0), &send_index);
       buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current() * 10.0), &send_index);
       buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &send_index);
+      buffer_append_int16(buffer, (int16_t)(mc_interface_get_rpm2()/10.0), &send_index);
       comm_can_transmit_eid(app_get_configuration()->controller_id |
                             ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
     }
@@ -410,7 +413,7 @@ void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uin
  * Otherwise, it will be passed to the process function.
  */
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, bool send) {
-  uint8_t send_buffer[8];
+  uint8_t send_buffer[16];
 
   if (len <= 6) {
     uint32_t ind = 0;
@@ -481,10 +484,11 @@ void comm_can_set_duty(uint8_t controller_id, float duty) {
                         ((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
 }
 
-void comm_can_set_current(uint8_t controller_id, float current) {
+void comm_can_set_current(uint8_t controller_id, float current, float current2) {
   int32_t send_index = 0;
-  uint8_t buffer[4];
+  uint8_t buffer[8];
   buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+  buffer_append_int32(buffer, (int32_t)(current2 * 1000.0), &send_index);
   comm_can_transmit_eid(controller_id |
                         ((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
 }

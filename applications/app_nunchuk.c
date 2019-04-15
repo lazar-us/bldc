@@ -329,7 +329,7 @@ static THD_FUNCTION(output_thread, arg) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current(msg->id, current);
+						comm_can_set_current(msg->id, current, current);
 					}
 				}
 			}
@@ -457,9 +457,9 @@ static THD_FUNCTION(output_thread, arg) {
 						}
 
 						if (is_reverse) {
-							comm_can_set_current(msg->id, -current_out);
+							comm_can_set_current(msg->id, -current_out, -current_out);
 						} else {
-							comm_can_set_current(msg->id, current_out);
+							comm_can_set_current(msg->id, current_out, current_out);
 						}
 					}
 				}

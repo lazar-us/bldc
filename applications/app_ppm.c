@@ -13,7 +13,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 #include "app.h"
 
 #include "ch.h"
@@ -261,16 +261,24 @@ static THD_FUNCTION(ppm_thread, arg) {
 
     // Find lowest RPM
     float rpm_local = mc_interface_get_rpm();
+    float rpm_local2 = mc_interface_get_rpm2();
     float rpm_lowest = rpm_local;
+    if(fabsf(rpm_local2)<fabsf(rpm_lowest)){
+      rpm_lowest = rpm_local2;
+    }
     if (config.multi_esc) {
       for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
         can_status_msg *msg = comm_can_get_status_msg_index(i);
 
         if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
           float rpm_tmp = msg->rpm;
+          float rpm_tmp2 = msg->rpm2;
 
           if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
             rpm_lowest = rpm_tmp;
+          }
+          if (fabsf(rpm_tmp2) < fabsf(rpm_lowest)) {
+            rpm_lowest = rpm_tmp2;
           }
         }
       }
@@ -283,7 +291,7 @@ static THD_FUNCTION(ppm_thread, arg) {
         can_status_msg *msg = comm_can_get_status_msg_index(i);
 
         if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-          comm_can_set_current(msg->id, current);
+          comm_can_set_current(msg->id, current, current);
         }
       }
     }
@@ -302,16 +310,22 @@ static THD_FUNCTION(ppm_thread, arg) {
         }
       } else {
         float current_out = current;
+        float current_out2 = current;
         bool is_reverse = false;
-        if (current_out < 0.0) {
+        if (current < 0.0) {
           is_reverse = true;
           current_out = -current_out;
           current = -current;
           rpm_local = -rpm_local;
           rpm_lowest = -rpm_lowest;
+          current_out2 = -current_out2;
+          rpm_local2 = -rpm_local2;
         }
 
         // Traction control
+
+
+
         if (config.multi_esc) {
           for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
             can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -319,38 +333,50 @@ static THD_FUNCTION(ppm_thread, arg) {
             if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
               if (config.tc) {
                 float rpm_tmp = msg->rpm;
+                float rpm_tmp2 = msg->rpm2;
                 if (is_reverse) {
                   rpm_tmp = -rpm_tmp;
+                  rpm_tmp2 = -rpm_tmp2;
                 }
 
                 float diff = rpm_tmp - rpm_lowest;
+                float diff2 = rpm_tmp2 - rpm_lowest;
                 current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+                current_out2 = utils_map(diff2, 0.0, config.tc_max_diff, current, 0.0);
                 if (current_out < mcconf->cc_min_current) {
                   current_out = 0.0;
+                }
+                if (current_out2 < mcconf->cc_min_current) {
+                  current_out2 = 0.0;
                 }
               }
 
               if (is_reverse) {
-                comm_can_set_current(msg->id, -current_out);
+                comm_can_set_current(msg->id, -current_out, -current_out2);
               } else {
-                comm_can_set_current(msg->id, current_out);
+                comm_can_set_current(msg->id, current_out, current_out2);
               }
-            }
-          }
-
-          if (config.tc) {
-            float diff = rpm_local - rpm_lowest;
-            current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
-            if (current_out < mcconf->cc_min_current) {
-              current_out = 0.0;
             }
           }
         }
 
+        if (config.tc) {
+          float diff = rpm_local - rpm_lowest;
+          float diff2 = rpm_local2 - rpm_lowest;
+          current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+          current_out2 = utils_map(diff2, 0.0, config.tc_max_diff, current, 0.0);
+          if (current_out < mcconf->cc_min_current) {
+            current_out = 0.0;
+          }
+          if (current_out2 < mcconf->cc_min_current) {
+            current_out2 = 0.0;
+          }
+        }
+
         if (is_reverse) {
-          mc_interface_set_current(-current_out,-current_out);
+          mc_interface_set_current(-current_out,-current_out2);
         } else {
-          mc_interface_set_current(current_out,current_out);
+          mc_interface_set_current(current_out,current_out2);
         }
       }
     }
