@@ -110,6 +110,8 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
 	conf->app_ppm_conf.tc = APPCONF_PPM_TC;
 	conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
+	conf->app_ppm_conf.max_erpm_for_dir_active = APPCONF_PPM_MAX_ERPM_FOR_DIR_ACTIVE;
+	conf->app_ppm_conf.max_erpm_for_dir = APPCONF_PPM_MAX_ERPM_FOR_DIR;
 
 	conf->app_adc_conf.ctrl_type = APPCONF_ADC_CTRL_TYPE;
 	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;

@@ -59,6 +59,11 @@ static void (*send_func_last)(unsigned char *data, unsigned int len) = 0;
 static void (*appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 
+// Disable configuration of advanced reverse. Enabling this will break
+// compatibility with Unity app. Instead, configure reverse by editing the
+// default config; see appconf_default.h for "Advanced reverse config".
+#define ENABLE_CONFIG_ADVANCED_REVERSE 0
+
 void commands_init(void) {
   chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
 }
@@ -745,6 +750,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
     appconf.app_ppm_conf.multi_esc = data[ind++];
     appconf.app_ppm_conf.tc = data[ind++];
     appconf.app_ppm_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
+    #if ENABLE_CONFIG_ADVANCED_REVERSE
+    appconf.app_ppm_conf.max_erpm_for_dir_active = data[ind++];
+    appconf.app_ppm_conf.max_erpm_for_dir = buffer_get_float32_auto(data, &ind);
+    #endif
 
     appconf.app_adc_conf.ctrl_type = data[ind++];
     appconf.app_adc_conf.hyst = buffer_get_float32_auto(data, &ind);
@@ -1208,6 +1217,10 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
   send_buffer[ind++] = appconf->app_ppm_conf.multi_esc;
   send_buffer[ind++] = appconf->app_ppm_conf.tc;
   buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.tc_max_diff, &ind);
+  #if ENABLE_CONFIG_ADVANCED_REVERSE
+  send_buffer[ind++] = appconf->app_ppm_conf.max_erpm_for_dir_active;
+  buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.max_erpm_for_dir, &ind);
+  #endif
 
   send_buffer[ind++] = appconf->app_adc_conf.ctrl_type;
   buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.hyst, &ind);

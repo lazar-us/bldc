@@ -320,6 +320,8 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
+	bool max_erpm_for_dir_active;
+	float max_erpm_for_dir;
 } ppm_config;
 
 // ADC control types
